@@ -67,4 +67,5 @@ Document-layout and power-transition regression checks (Node 22.13+):
 ```sh
 node --experimental-strip-types tests/crt-power.test.mjs
 node --experimental-strip-types tests/crt-document.test.mjs
+node --experimental-strip-types tests/crt-companion.test.mjs
 ```

@@ -8,6 +8,7 @@ import { createResumeDocument } from "./document";
 import { createCrtMaterial, CRT_GLASS_COLOR } from "./screen-material";
 import { getCrtTimeline } from "./timeline";
 import { createCrtPower } from "./power";
+import { createCompanionSequence, getCompanionExpression, getCompanionFraming } from "./companion";
 import type { Resume } from "./resume";
 
 const SCREEN_CENTER = new Vector3(0, 2.99, 0.91);
@@ -19,7 +20,7 @@ const COMPUTER_HEIGHT = 2.12;
 const SCREEN_WIDTH = 1.4;
 
 export interface CrtRenderer {
-  setProgress(progress: number): void;
+  setProgress(progress: number, passions: number): void;
   dispose(): void;
 }
 
@@ -43,6 +44,7 @@ export function createCrtRenderer(
   resume: Resume,
   onReady: (ready: boolean) => void,
   onDocumentMeasure: (distance: number) => void,
+  onPresentation: (wipe: number, copy: number) => void,
 ): CrtRenderer {
   const renderer = new WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: "low-power" });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -53,7 +55,8 @@ export function createCrtRenderer(
   renderer.shadowMap.type = PCFShadowMap;
 
   const scene = new Scene();
-  scene.add(new HemisphereLight(0xf7f9ff, 0xc6c7c9, 0.95));
+  const ambient = new HemisphereLight(0xf7f9ff, 0xc6c7c9, 0.95);
+  scene.add(ambient);
   const key = new DirectionalLight(0xffffff, 3.6);
   key.position.set(-4, 8, 7);
   key.castShadow = true;
@@ -75,37 +78,59 @@ export function createCrtRenderer(
   const camera = new PerspectiveCamera(35, 1, 0.05, 150);
   const finalPosition = new Vector3();
   const finalTarget = new Vector3(0, 2.76, 0.91);
+  const companionPosition = new Vector3();
+  const companionTarget = new Vector3();
+  const cameraTarget = new Vector3();
   const document = createResumeDocument(resume);
-  const screenMaterial = createCrtMaterial(document.texture);
+  const screenMaterial = createCrtMaterial(document.texture, getComputedStyle(canvas).getPropertyValue("--passions-background").trim());
   const abort = new AbortController();
-  const power = createCrtPower();
+  const sequence = createCompanionSequence(createCrtPower());
   let model: Group | undefined;
   let progress = 0;
+  let passions = 0;
+  let companionYaw = 0;
   let frame = 0;
   let visible = false;
+  let canvasVisible = false;
   let disposed = false;
   let contextLost = false;
   let documentWidth = 0;
   let width = 1;
   let height = 1;
 
-  function updateCamera(approach: number) {
+  function updateCamera(approach: number, retreat: number) {
     camera.position.lerpVectors(START_POSITION, finalPosition, approach);
-    camera.lookAt(new Vector3().lerpVectors(START_TARGET, finalTarget, approach));
+    camera.position.lerp(companionPosition, retreat);
+    cameraTarget.lerpVectors(START_TARGET, finalTarget, approach).lerp(companionTarget, retreat);
+    camera.lookAt(cameraTarget);
     camera.updateMatrixWorld();
   }
 
   const draw = (now: number) => {
     frame = 0;
     if (disposed || contextLost || !model || !visible || window.document.hidden) return;
-    const timeline = getCrtTimeline(progress);
-    updateCamera(timeline.approach);
+    const presentation = sequence.sample(progress, passions, now);
+    const timeline = getCrtTimeline(presentation.resume);
+    updateCamera(timeline.approach, presentation.retreat);
     document.draw(timeline.reading);
-    const powerFrame = power.sample(now);
-    screenMaterial.uniforms.shutdown.value = powerFrame.shutdown;
-    canvas.dataset.power = powerFrame.phase;
-    renderer.render(scene, camera);
-    if (powerFrame.animating) requestDraw();
+    const expression = getCompanionExpression(presentation.companionTime);
+    screenMaterial.uniforms.shutdown.value = presentation.power.shutdown;
+    screenMaterial.uniforms.eyes.value = presentation.display === "eyes" ? 1 : 0;
+    screenMaterial.uniforms.gaze.value.set(expression.gazeX, expression.gazeY);
+    screenMaterial.uniforms.blink.value = expression.blink;
+    model.rotation.y = companionYaw * presentation.retreat;
+    model.position.y = expression.hover;
+    floorMaterial.opacity = 0.13 * (1 - presentation.retreat);
+    ambient.intensity = 0.95 - presentation.retreat * 0.2;
+    key.intensity = 3.6 - presentation.retreat * 0.8;
+    canvas.dataset.power = presentation.power.phase;
+    canvas.dataset.display = presentation.display;
+    canvas.dataset.phase = presentation.retreat === 1 ? "passions" : presentation.retreat > 0 ? "retreat" : presentation.wipe > 0 ? "wipe" : timeline.phase;
+    onPresentation(presentation.wipe, presentation.copy);
+    if (canvasVisible) renderer.render(scene, camera);
+    // A tall text pane can outlive the canvas on short screens. Finish its reveal
+    // even off-canvas, then pause the companion until the computer is visible again.
+    if (presentation.animating && (canvasVisible || presentation.position !== passions || presentation.power.animating)) requestDraw();
   };
 
   const requestDraw = () => { if (!frame && !disposed) frame = requestAnimationFrame(draw); };
@@ -126,6 +151,10 @@ export function createCrtRenderer(
     );
     const distance = COMPUTER_WIDTH * height / (2 * Math.tan(camera.fov * Math.PI / 360) * monitorPixels);
     finalPosition.set(0.08, finalTarget.y + 0.06, SCREEN_CENTER.z + distance);
+    const framing = getCompanionFraming(width, height, camera.fov);
+    companionPosition.set(framing.x, framing.y, framing.z);
+    companionTarget.set(framing.x, framing.y, 0);
+    companionYaw = framing.yaw;
     const screenPixels = monitorPixels * SCREEN_WIDTH / COMPUTER_WIDTH;
     if (Math.abs(screenPixels - documentWidth) > 1) {
       documentWidth = screenPixels;
@@ -137,10 +166,15 @@ export function createCrtRenderer(
 
   const observer = new ResizeObserver(resize);
   observer.observe(canvas);
-  const intersection = new IntersectionObserver(([entry]) => {
-    visible = entry.isIntersecting;
+  const viewport = canvas.parentElement ?? canvas;
+  const intersection = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.target === viewport) visible = entry.isIntersecting;
+      if (entry.target === canvas) canvasVisible = entry.isIntersecting;
+    }
     requestDraw();
   });
+  intersection.observe(viewport);
   intersection.observe(canvas);
   window.document.addEventListener("visibilitychange", requestDraw);
 
@@ -198,10 +232,10 @@ export function createCrtRenderer(
   resize();
 
   return {
-    setProgress(value) {
+    setProgress(value, nextPassions) {
       if (disposed) return;
       progress = value;
-      power.request(value, performance.now());
+      passions = nextPassions;
       requestDraw();
     },
     dispose() {
