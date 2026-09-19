@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { Box3, PerspectiveCamera, Vector3 } from "three";
+import { Box3, Matrix4, PerspectiveCamera, Vector3 } from "three";
 import { createPanelLayout, fitRoomCamera, panelCorners, projectPanel, ROOM_PITCH, DESK_CENTER, BED_CENTER } from "../lib/room/layout.ts";
+import { flattenScreenProjection } from "../lib/room/life.ts";
 
 const bounds = new Box3(new Vector3(-4.17, 0, -1.67), new Vector3(3.49, 1.95, 1.59));
 const panels = [createPanelLayout(720, 440, false), createPanelLayout(620, 380, true)];
@@ -44,6 +45,32 @@ test("DOM projective matrices exactly match WebGL pixels at every panel corner",
       const css = new Vector3(x, y, 0).applyMatrix4(dom);
       close(css.x, (webgl.x + 1) * 720);
       close(css.y, (1 - webgl.y) * 450);
+    }
+  }
+});
+
+test("life screen keeps its projected position without a reflected axis that flips during centering", () => {
+  for (const [width, height] of [[701, 900], [1440, 900], [2560, 1318], [1920, 600]]) {
+    const camera = new PerspectiveCamera(34, width / height, .1, 100);
+    fitRoomCamera(camera, bounds, panels);
+    // Include the room's viewport position and the inset inside the screen frame.
+    const origin = new Matrix4().makeTranslation(12, -80, 0)
+      .multiply(projectPanel(camera, panels[1], width, height))
+      .multiply(new Matrix4().makeTranslation(8, 8, 0));
+    const flat = new Matrix4().fromArray(flattenScreenProjection(origin.elements));
+    assert.ok(origin.determinant() < 0, "The camera projection reproduces the reflected depth axis");
+    assert.ok(flat.determinant() > 0, "The opening transform must not reflect any axis");
+    const m = flat.elements;
+    assert.ok(m[0] * m[5] - m[1] * m[4] > 0, "The CSS affine decomposition must stay upright");
+    assert.deepEqual([m[2], m[6], m[8], m[9], m[11], m[14]], [0, 0, 0, 0, 0, 0]);
+    assert.equal(m[10], 1);
+    assert.equal(m[15], 1);
+    for (const [x, y] of [[0, 0], [604, 0], [302, 165], [0, 330], [604, 330]]) {
+      const before = new Vector3(x, y, 0).applyMatrix4(origin);
+      const after = new Vector3(x, y, 0).applyMatrix4(flat);
+      close(after.x, before.x);
+      close(after.y, before.y);
+      close(after.z, 0);
     }
   }
 });
