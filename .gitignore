@@ -47,3 +47,5 @@ next-env.d.ts
 /assets/blender/generated/
 *.tsbuildinfo
 __pycache__/
+
+/assets/blender/computer/generated/

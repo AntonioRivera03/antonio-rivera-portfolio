@@ -19,6 +19,20 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 38%,
+    rgb(0 0 0 / 0.07) 72%,
+    rgb(0 0 0 / 0.22) 100%
+  );
+}
+
 .landing {
   display: grid;
   min-height: 100svh;
@@ -99,4 +113,73 @@ h1 {
   .landing { padding-inline: 1.25rem; }
   h1 { white-space: normal; }
   .role { font-size: 0.8125rem; gap: 0.5rem; }
+}
+
+.crt-story {
+  position: relative;
+  min-height: 100svh;
+}
+
+.crt-viewport {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.crt-canvas { display: none; width: 100%; height: 100%; }
+.crt-still { width: min(60vw, 500px); height: auto; object-fit: contain; }
+.crt-story[data-enhanced="true"] { height: var(--crt-track-height, 650svh); }
+.crt-story[data-enhanced="true"] .crt-viewport { position: sticky; top: 0; }
+.crt-story[data-enhanced="true"] .crt-canvas { display: block; }
+.crt-story[data-enhanced="true"] .crt-still { display: none; }
+
+.resume-access {
+  position: absolute;
+  left: 50%;
+  bottom: 2rem;
+  transform: translate(-50%, 6rem);
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--foreground);
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+}
+.resume-access:focus-visible { transform: translate(-50%, 0); outline: 2px solid var(--foreground); outline-offset: 3px; }
+
+.resume-accessible { width: min(100% - 3rem, 660px); margin: 0 auto; padding: 0 0 6rem; }
+.crt-story[data-enhanced="true"] .resume-accessible {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.resume-document { font-family: Georgia, serif; font-size: 1rem; line-height: 1.65; }
+.resume-document h2 { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 2rem; letter-spacing: -0.04em; font-weight: 400; margin: 0 0 0.5rem; }
+.resume-document h3 { margin: 2rem 0 0.75rem; font-size: 1.15rem; }
+.resume-document h4 { margin: 0; font-size: 1rem; }
+.resume-document p { margin: 0.35rem 0; }
+.resume-entry { margin-bottom: 1.4rem; }
+.resume-date { color: var(--muted); }
+
+@media (max-width: 700px) {
+  .crt-still { width: min(86vw, 420px); }
+}
+
+@media print {
+  body::after, .landing, .crt-viewport { display: none; }
+  .crt-story[data-enhanced="true"] { height: auto; }
+  .crt-story[data-enhanced="true"] .resume-accessible {
+    position: static;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+  }
 }

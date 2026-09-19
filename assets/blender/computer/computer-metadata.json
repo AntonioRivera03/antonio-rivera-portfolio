@@ -1,0 +1,65 @@
+{
+  "glb": "public/computer/computer.glb",
+  "blend": "assets/blender/computer/computer.blend",
+  "bytes": 3237880,
+  "screen": {
+    "name": "CRT_Screen",
+    "width": 1.4,
+    "height": 1.05,
+    "world_center": [
+      0,
+      2.99,
+      0.94
+    ],
+    "world_edge_depth": 0.86,
+    "object_translation": [
+      0,
+      2.99,
+      0
+    ],
+    "local_bounds": {
+      "min": [
+        -0.7,
+        -0.525,
+        0.86
+      ],
+      "max": [
+        0.7,
+        0.525,
+        0.94
+      ]
+    },
+    "uv": "Lower-left [0,0]; upper-right [1,1]; full 4:3 rectangle",
+    "normal": "Front +Z. One opaque surface. No glass overlay."
+  },
+  "coordinates": "glTF Y up, front +Z; model root has no authored transform",
+  "distant_camera": {
+    "position": [
+      3.5,
+      4.15,
+      6.5
+    ],
+    "target": [
+      0,
+      2.68,
+      0
+    ],
+    "fov": 23
+  },
+  "near_camera": {
+    "position": [
+      0,
+      2.99,
+      2.85
+    ],
+    "target": [
+      0,
+      2.99,
+      0.94
+    ],
+    "fov": 35
+  },
+  "mesh_count": 26,
+  "runtime_mesh_count": 7,
+  "vertices": 43685
+}
