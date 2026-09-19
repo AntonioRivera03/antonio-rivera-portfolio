@@ -32,46 +32,65 @@ export function createResumeDocument(resume: Resume) {
     const fontSize = Math.round(16 * logicalScale);
     const lineHeight = Math.round(fontSize * 1.5);
     const bodyWidth = WIDTH - MARGIN * 2 - 20;
-    type Line = { text: string; y: number; font: string; color: string };
+    type Line = { text: string; x: number; y: number; font: string; color: string };
+    type TextOptions = { size?: number; bold?: boolean; color?: string; width?: number; right?: boolean };
     const lines: Line[] = [];
     let y = MARGIN;
-    const add = (text: string, size = fontSize, bold = false, color = "#292b28") => {
+    const add = (text: string, options: TextOptions = {}) => {
+      const { size = fontSize, bold = false, color = "#292b28", width = bodyWidth, right = false } = options;
       const font = `${bold ? "bold " : ""}${size}px Georgia, serif`;
       pageContext!.font = font;
+      const push = (text: string) => {
+        const x = right ? MARGIN + bodyWidth - pageContext!.measureText(text).width : MARGIN;
+        lines.push({ text, x, y, font, color });
+        y += size * 1.45;
+      };
       let line = "";
       for (const word of text.split(/\s+/)) {
-        if (pageContext!.measureText(word).width > bodyWidth) {
-          if (line) { lines.push({ text: line, y, font, color }); y += size * 1.45; line = ""; }
+        if (pageContext!.measureText(word).width > width) {
+          if (line) { push(line); line = ""; }
           for (const character of word) {
-            if (pageContext!.measureText(line + character).width > bodyWidth) {
-              lines.push({ text: line, y, font, color }); y += size * 1.45; line = "";
+            if (line && pageContext!.measureText(line + character).width > width) {
+              push(line); line = "";
             }
             line += character;
           }
           continue;
         }
         const candidate = line ? `${line} ${word}` : word;
-        if (line && pageContext!.measureText(candidate).width > bodyWidth) {
-          lines.push({ text: line, y, font, color });
-          y += size * 1.45;
+        if (line && pageContext!.measureText(candidate).width > width) {
+          push(line);
           line = word;
         } else line = candidate;
       }
-      if (line) { lines.push({ text: line, y, font, color }); y += size * 1.45; }
+      if (line) push(line);
     };
 
-    add(resume.name, Math.round(fontSize * 1.65), true);
-    add(resume.role, fontSize, false, "#55594f");
+    add(resume.name, { size: Math.round(fontSize * 1.65), bold: true });
+    add(resume.role, { color: "#55594f" });
     y += lineHeight * 0.35;
-    resume.contact.forEach((line) => add(line, fontSize * 0.82, false, "#55594f"));
+    resume.contact.forEach((line) => add(line, { size: fontSize * 0.82, color: "#55594f" }));
     for (const section of resume.sections) {
       y += lineHeight * 0.9;
-      add(section.title, fontSize * 1.1, true);
+      add(section.title, { size: fontSize * 1.1, bold: true });
       y += lineHeight * 0.15;
       for (const entry of section.entries) {
-        if (entry.title) add(entry.title, fontSize, true);
-        if (entry.detail) add(entry.detail, fontSize * 0.9);
-        if (entry.date) add(entry.date, fontSize * 0.82, false, "#62665c");
+        const dateStyle = { size: fontSize * 0.82, color: "#62665c", right: true };
+        pageContext!.font = `${dateStyle.size}px Georgia, serif`;
+        const dateWidth = entry.date ? pageContext!.measureText(entry.date).width : 0;
+        const headingWidth = bodyWidth - dateWidth - fontSize * 0.8;
+        if (entry.title && entry.date && headingWidth >= Math.max(fontSize * 12, bodyWidth / 2)) {
+          const top = y;
+          add(entry.title, { bold: true, width: headingWidth });
+          const headingBottom = y;
+          y = top;
+          add(entry.date, dateStyle);
+          y = Math.max(headingBottom, y);
+        } else {
+          if (entry.title) add(entry.title, { bold: true });
+          if (entry.date) add(entry.date, dateStyle);
+        }
+        if (entry.detail) add(entry.detail, { size: fontSize * 0.9 });
         entry.paragraphs?.forEach((paragraph) => { y += lineHeight * 0.25; add(paragraph); });
         y += lineHeight * 0.5;
       }
@@ -85,7 +104,7 @@ export function createResumeDocument(resume: Resume) {
     for (const line of lines) {
       pageContext!.font = line.font;
       pageContext!.fillStyle = line.color;
-      pageContext!.fillText(line.text, MARGIN, line.y);
+      pageContext!.fillText(line.text, line.x, line.y);
     }
     previousProgress = -1;
   }

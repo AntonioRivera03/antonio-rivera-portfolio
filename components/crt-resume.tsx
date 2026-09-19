@@ -18,9 +18,11 @@ function ResumeContent() {
           <h3>{section.title}</h3>
           {section.entries.map((entry, index) => (
             <div className="resume-entry" key={`${entry.title}-${index}`}>
-              {entry.title && <h4>{entry.title}</h4>}
+              <div className="resume-entry-heading">
+                {entry.title && <h4>{entry.title}</h4>}
+                {entry.date && <p className="resume-date">{entry.date}</p>}
+              </div>
               {entry.detail && <p>{entry.detail}</p>}
-              {entry.date && <p className="resume-date">{entry.date}</p>}
               {entry.paragraphs?.map((text, paragraph) => <p key={paragraph}>{text}</p>)}
             </div>
           ))}

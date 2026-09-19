@@ -60,10 +60,11 @@ blender --background --python assets/blender/computer/generator.py -- --render-p
 
 This writes to `assets/blender/computer/generated/`. Inspect the result before replacing the public GLB and still image.
 
-Set the résumé content in `lib/crt/resume.ts`. It currently contains only the confirmed name and role, pending the real résumé. The same content feeds the readable HTML fallback for reduced motion, printing, assistive technology, and WebGL failure. Keyboard users can focus “Read résumé as text” to leave the scroll presentation.
+Set the résumé content in `lib/crt/resume.ts`. Each job has a company/title heading, dates aligned right, and one short paragraph. On narrow displays, dates move below the heading to keep the text readable. The same content feeds the readable HTML fallback for reduced motion, printing, assistive technology, and WebGL failure. Keyboard users can focus “Read résumé as text” to leave the scroll presentation.
 
-Power-transition regression checks (Node 22.13+):
+Document-layout and power-transition regression checks (Node 22.13+):
 
 ```sh
 node --experimental-strip-types tests/crt-power.test.mjs
+node --experimental-strip-types tests/crt-document.test.mjs
 ```
