@@ -282,22 +282,17 @@ h1 {
 .room-canvas { visibility: hidden; }
 .room[data-ready="true"] .room-canvas { visibility: visible; }
 .room[data-ready="true"] .room-still { visibility: hidden; }
-.featured-panels { position: absolute; z-index: 1; width: 41%; left: 5%; top: 8%; }
-.featured-panels h2 { font-weight: 400; font-size: clamp(1.6rem, 2.4vw, 2.5rem); letter-spacing: -.04em; margin: 0 0 1.3rem; text-align: center; }
+.current-panels { position: absolute; z-index: 1; width: 41%; left: 5%; top: 8%; }
+.current-panels h2 { font-weight: 400; font-size: clamp(1.6rem, 2.4vw, 2.5rem); letter-spacing: -.04em; margin: 0 0 1.3rem; text-align: center; }
 .project-panels { display: flex; gap: 1.2rem; }
-.project-pane { display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; border: 1px solid #c8c9c7; border-radius: 7px; background: #fafafa; box-shadow: 1px 4px 0 #d9dad8, 0 15px 35px #24242416; text-decoration: none; color: inherit; overflow: hidden; transition: translate 180ms ease, box-shadow 180ms ease; }
-.project-pane:hover { translate: 0 -5px; box-shadow: 1px 4px 0 #d9dad8, 0 20px 40px #24242425; }
+.project-pane { position: relative; display: block; flex: 1 1 0; min-width: 0; aspect-ratio: 29 / 31; container-type: inline-size; overflow: hidden; text-decoration: none; }
+.project-aycorn { background: var(--passions-background); color: var(--passions-foreground); }
+.project-livedmatch { background: #edf2ef; color: #324343; }
 .project-pane:focus-visible, .personal-pane a:focus-visible, .cloud-slide:focus-visible { outline: 2px solid #437ca1; outline-offset: 4px; }
-.project-window-bar { font-family: "Courier New", monospace; font-size: .875rem; padding: .6rem .8rem; border-bottom: 1px solid #d6d6d3; background: #efefed; }
-.project-preview { display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; min-height: 170px; padding: 1.5rem 1rem; }
-.project-preview > span:first-child { font-size: clamp(1.15rem, 1.85vw, 1.8rem); letter-spacing: -.05em; }
-.aycorn-preview { background: #1e2426; color: #e5ece9; }
-.project-preview i { font-size: .875rem; font-style: normal; }
-.project-code { color: #afc2bc; font: .875rem/1.7 "Courier New", monospace; }
-.project-code b { color: #6e8584; font-weight: normal; margin-right: .5rem; }
-.livedmatch-preview { color: #324343; background: #edf2ef; }
-.match-lines { display: flex; align-items: center; justify-content: space-between; gap: .5rem; font: .875rem/1.8 "Courier New", monospace; border-top: 1px solid #b4c9bf; border-bottom: 1px solid #b4c9bf; padding: 1rem 0; }
-.project-caption { display: flex; align-items: center; justify-content: space-between; gap: .4rem; padding: .85rem; font-size: .875rem; line-height: 1.4; flex: 1; }
+.project-title { position: absolute; top: 9%; left: 0; width: 100%; text-align: center; font-size: 10.35cqw; font-weight: 400; line-height: 1.2; letter-spacing: -.05em; }
+.project-face { position: absolute; display: block; top: 27%; left: 10%; width: 80%; height: auto; overflow: visible; pointer-events: none; }
+.project-pupils { transform: translate(var(--project-gaze-x, 0px), var(--project-gaze-y, 0px)); transition: transform 380ms cubic-bezier(.2,.7,.2,1); }
+.project-face[data-moving="false"] .project-pupils { transition: none; }
 .personal-pane { position: absolute; z-index: 2; left: 54%; top: 13%; width: 40%; max-width: 750px; transform-origin: center; }
 .personal-screen { border: 7px solid #dedfdb; border-radius: 10px; background: #181a19; box-shadow: -2px 4px 0 #bfc1bc, 0 24px 50px #24242420; overflow: hidden; }
 .personal-screen-content { position: relative; display: grid; min-height: clamp(240px, 21vw, 370px); transform: scale(var(--screen-width, 1), var(--screen-height, 1)); background: #fafafa; }
@@ -330,16 +325,11 @@ h1 {
 /* These matrices come from the same camera as the furniture, not CSS perspective. */
 @media (min-width: 701px) {
   .room[data-projected="true"] .room-canvas { inset: 0; width: 100%; height: 100%; }
-  .room[data-projected="true"] .featured-panels, .room[data-projected="true"] .personal-pane { left: 0; top: 0; max-width: none; transform-origin: 0 0; }
-  .room[data-projected="true"] .featured-panels { width: 720px; }
+  .room[data-projected="true"] .current-panels, .room[data-projected="true"] .personal-pane { left: 0; top: 0; max-width: none; transform-origin: 0 0; }
+  .room[data-projected="true"] .current-panels { width: 720px; }
   .room[data-projected="true"] .personal-pane { width: 620px; }
-  .room[data-projected="true"] .featured-panels h2 { font-size: 36px; margin-bottom: 24px; }
+  .room[data-projected="true"] .current-panels h2 { font-size: 36px; margin-bottom: 24px; }
   .room[data-projected="true"] .project-panels { gap: 24px; }
-  .room[data-projected="true"] .project-window-bar { font-size: 18px; padding: 12px 16px; }
-  .room[data-projected="true"] .project-preview { min-height: 230px; padding: 24px 20px; }
-  .room[data-projected="true"] .project-preview > span:first-child { font-size: 36px; }
-  .room[data-projected="true"] .project-code, .room[data-projected="true"] .match-lines { font-size: 20px; }
-  .room[data-projected="true"] .project-caption { font-size: 20px; padding: 16px; }
   .room[data-projected="true"] .personal-screen-content { min-height: 330px; }
   .room[data-projected="true"] .profile-info { padding: 28px; }
   .room[data-projected="true"] .profile-info h2 { font-size: 38px; margin-bottom: 24px; }
@@ -350,10 +340,8 @@ h1 {
 }
 
 @media (max-width: 1000px) and (min-width: 701px) {
-  .featured-panels { left: 3%; width: 43%; }
+  .current-panels { left: 3%; width: 43%; }
   .project-panels { gap: .6rem; }
-  .project-preview { min-height: 150px; padding: 1rem .7rem; }
-  .project-code { font-size: .8125rem; }
   .personal-pane { left: 52%; width: 45%; }
   .profile-info { padding: 1rem; }
   .profile-info h2 { margin-bottom: 1rem; }
@@ -373,12 +361,9 @@ h1 {
   .profile-info p { font-size: 1rem; }
   .profile-info nav { margin-top: 1rem; column-gap: .6rem; }
   .room-canvas, .room-still { position: relative; top: auto; grid-row: 2; grid-column: 1; width: calc(100% + 3rem); margin-inline: -1.5rem; height: 300px; }
-  .featured-panels { position: relative; left: auto; top: auto; width: 100%; grid-row: 3; align-self: start; }
-  .featured-panels h2 { font-size: 2rem; }
+  .current-panels { position: relative; left: auto; top: auto; width: 100%; grid-row: 3; align-self: start; }
+  .current-panels h2 { font-size: 2rem; }
   .project-panels { gap: .75rem; }
-  .project-preview { min-height: 160px; padding: 1rem .7rem; }
-  .project-caption { padding: .65rem; }
-  .match-lines { flex-wrap: wrap; justify-content: center; }
   .cloud-slide { font-size: 1.35rem; }
   .life-motto { gap: .8rem; }
 }
@@ -394,10 +379,10 @@ h1 {
   .project-panels { flex-direction: column; }
   .project-pane { flex: none; }
   .room-canvas, .room-still { width: calc(100% + 2rem); margin-inline: -1rem; }
-  .project-preview { min-height: 140px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .project-pane, .life-motto { transition: none; }
+  .project-pupils { transition: none; }
+  .life-motto { transition: none; }
 }
 @media print {
   .skills-static, .crt-story[data-enhanced="true"] .skills-static { position: static; width: auto; height: auto; clip-path: none; overflow: visible; padding: 2rem 0; }

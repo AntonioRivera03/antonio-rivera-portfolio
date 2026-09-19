@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getSlideFrame, SLIDE_CYCLE, SLIDE_DWELL } from "@/lib/room/slides";
 import { LifeView } from "@/components/life-view";
+import { ProjectFace } from "@/components/project-face";
 import { captureLifeOrigin, type LifeOrigin } from "@/lib/room/life";
 
 export function Room({ active, animated }: { active: boolean; animated: boolean }) {
@@ -74,22 +75,20 @@ export function Room({ active, animated }: { active: boolean; animated: boolean 
   };
 
   return (
-    <section ref={rootRef} className="room" aria-label="Featured projects and about Antonio" data-animated={animated} data-ready={ready} data-life-open={Boolean(origin)}>
+    <section ref={rootRef} className="room" aria-label="Current projects and about Antonio" data-animated={animated} data-ready={ready} data-life-open={Boolean(origin)}>
       <canvas ref={canvasRef} className="room-canvas" aria-hidden="true" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="room-still" src="/room/room-still.png" width="1600" height="1000" alt="A person working at a desk beside a twin bed with red flannel sheets." />
-      <section ref={projectsRef} className="featured-panels" aria-labelledby="featured-title">
-        <h2 id="featured-title" className="chromatic">featured projects</h2>
+      <section ref={projectsRef} className="current-panels" aria-labelledby="current-projects-title">
+        <h2 id="current-projects-title" className="chromatic">current projects</h2>
         <div className="project-panels">
-          <a className="project-pane project-aycorn" href="https://github.com/AntonioRivera03/AIcorn" target="_blank" rel="noreferrer">
-            <span className="project-window-bar">aycorn</span>
-            <span className="project-preview aycorn-preview" aria-hidden="true"><span>aycorn</span><span className="project-code"><b>01</b> planning<br /><b>02</b> development<br /><b>03</b> review</span></span>
-            <span className="project-caption">AI integrations for project workflows <span aria-hidden="true">↗</span></span>
+          <a className="project-pane project-aycorn" href="https://github.com/AntonioRivera03/AIcorn" target="_blank" rel="noreferrer" aria-label="Aycorn — AI integrations for project workflows (opens in a new tab)">
+            <span className="project-title chromatic">Aycorn</span>
+            <ProjectFace shape="round" active={active && !origin} />
           </a>
-          <a className="project-pane project-livedmatch" href="https://www.livedmatch.com/" target="_blank" rel="noreferrer">
-            <span className="project-window-bar">livedmatch</span>
-            <span className="project-preview livedmatch-preview" aria-hidden="true"><span>LivedMatch</span><span className="match-lines"><span>people</span><span>↔</span><span>research</span></span></span>
-            <span className="project-caption">Research startup <span aria-hidden="true">↗</span></span>
+          <a className="project-pane project-livedmatch" href="https://www.livedmatch.com/" target="_blank" rel="noreferrer" aria-label="LivedMatch — Research startup (opens in a new tab)">
+            <span className="project-title chromatic">LivedMatch</span>
+            <ProjectFace shape="square" active={active && !origin} />
           </a>
         </div>
       </section>
@@ -102,7 +101,8 @@ export function Room({ active, animated }: { active: boolean; animated: boolean 
               <div className="profile-info">
                 <h2>antonio rivera</h2>
                 <p>Texas A&amp;M–Central Texas</p>
-                <p>3+ years of experience</p>
+                <p>3.5+ years of experience</p>
+                <p>Austin, Texas</p>
                 <nav aria-label="Antonio’s links"><a href="https://www.linkedin.com/in/antonio-rivera-094438272/" target="_blank" rel="noreferrer">linkedin</a><a href="https://github.com/AntonioRivera03" target="_blank" rel="noreferrer">github</a><a href="mailto:antonio7rivera03@gmail.com">email</a></nav>
               </div>
             </div>
