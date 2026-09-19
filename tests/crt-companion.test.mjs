@@ -160,7 +160,7 @@ for (const [width, height] of [[1440, 900], [1280, 720], [1920, 1080], [390, 844
     const bottom = (1 - Math.min(...points.map((p) => p.y))) / 2;
     assert.ok(left > 0 && right < 1 && top > 0 && bottom < 1, `Clipped bounds: ${[left, right, top, bottom]}`);
     if (width > 700) {
-      assert.ok(right - left > 0.15 && right - left < 0.20, `Computer width: ${right - left}`);
+      assert.ok(right - left > 0.135 && right - left < 0.18, `Computer width: ${right - left}`);
       assert.ok((left + right) / 2 > 0.22 && (left + right) / 2 < 0.30);
       assert.ok((top + bottom) / 2 > 0.45 && (top + bottom) / 2 < 0.55);
       assert.ok(frame.x > 0 && frame.z > 5);

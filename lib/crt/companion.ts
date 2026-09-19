@@ -22,7 +22,7 @@ export function getStoryScroll(top: number, resumeDistance: number, viewport: nu
 export function getCompanionFraming(width: number, height: number, fov = 35) {
   const mobile = width <= 700;
   const projectedWidth = 2.45;
-  const pixels = Math.min(width * (mobile ? 0.39 : 0.18), height * (mobile ? 0.235 : 0.34) * projectedWidth / 2.12);
+  const pixels = Math.min(width * (mobile ? 0.36 : 0.165), height * (mobile ? 0.216 : 0.312) * projectedWidth / 2.12);
   const distance = projectedWidth * height / (2 * Math.tan(fov * Math.PI / 360) * pixels);
   const viewHeight = 2 * Math.tan(fov * Math.PI / 360) * distance;
   const x = mobile ? 0 : viewHeight * width / height * 0.24;

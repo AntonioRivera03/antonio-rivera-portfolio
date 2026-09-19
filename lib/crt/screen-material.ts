@@ -37,6 +37,11 @@ export function createCrtMaterial(document: Texture, faceBackground: string) {
         return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
       }
 
+      float eyeDistance(vec2 point, vec2 radii) {
+        point.x = abs(point.x) - 0.31;
+        return (length(point / radii) - 1.0) * min(radii.x, radii.y);
+      }
+
       void main() {
         vec2 p = vUv * 2.0 - 1.0;
         // Match the Blender glass in physical units, independently of image distortion.
@@ -56,12 +61,18 @@ export function createCrtMaterial(document: Texture, faceBackground: string) {
 
         // The same curved glass becomes a dark LED-like face after the retreat.
         vec2 eyePoint = curved - gaze;
-        eyePoint.x = abs(eyePoint.x) - 0.31;
         float eyeHeight = max(0.012, 0.225 * blink);
         vec2 eyeRadii = vec2(0.105, eyeHeight);
-        float eyeDistance = (length(eyePoint / eyeRadii) - 1.0) * min(eyeRadii.x, eyeRadii.y);
-        float eyeMask = 1.0 - smoothstep(-0.006, 0.006, eyeDistance);
-        float eyeGlow = exp(-max(0.0, eyeDistance) * 45.0) * 0.025;
+        float centerDistance = eyeDistance(eyePoint, eyeRadii);
+        // Separate the eye channels slightly; their shared interiors stay white.
+        vec2 channelOffset = vec2(0.014, 0.0015);
+        vec3 channelDistances = vec3(
+          eyeDistance(eyePoint + channelOffset, eyeRadii),
+          centerDistance,
+          eyeDistance(eyePoint - channelOffset, eyeRadii)
+        );
+        vec3 eyeMask = 1.0 - smoothstep(vec3(-0.006), vec3(0.006), channelDistances);
+        float eyeGlow = exp(-max(0.0, centerDistance) * 45.0) * 0.025;
         vec3 face = mix(faceBackground, vec3(0.96, 0.98, 0.97), eyeMask) + eyeGlow;
         color = mix(color, face, eyes);
         vec3 screenBase = mix(glassColor, faceBackground, eyes);
