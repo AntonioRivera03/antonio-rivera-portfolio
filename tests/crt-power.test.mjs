@@ -4,21 +4,22 @@ import { createCrtPower, POWER } from "../lib/crt/power.ts";
 import { getCrtTimeline, getScrollProgress } from "../lib/crt/timeline.ts";
 
 const offEnd = POWER.settleMs + POWER.offDurationMs;
+const offHalfway = POWER.settleMs + POWER.offDurationMs / 2;
 
 test("a threshold crossing completes shutoff without another scroll event", () => {
   const power = createCrtPower();
   power.request(0.88, 0);
   assert.equal(power.sample(POWER.settleMs - 1).phase, "on");
-  assert.equal(power.sample(POWER.settleMs + 450).shutdown, 0.5);
+  assert.equal(power.sample(offHalfway).shutdown, 0.5);
   assert.deepEqual(power.sample(offEnd), { shutdown: 1, phase: "off", animating: false });
 });
 
 test("progress beyond the threshold cannot scrub or restart the animation", () => {
   const power = createCrtPower();
   power.request(0.88, 0);
-  power.request(1, 300);
-  power.request(0.875, 500);
-  assert.equal(power.sample(POWER.settleMs + 450).shutdown, 0.5);
+  power.request(1, POWER.settleMs + POWER.offDurationMs * 0.2);
+  power.request(0.875, POWER.settleMs + POWER.offDurationMs * 0.4);
+  assert.equal(power.sample(offHalfway).shutdown, 0.5);
   assert.equal(power.sample(offEnd).phase, "off");
 });
 
@@ -85,7 +86,7 @@ test("hidden-tab time jumps settle before accepting new input", () => {
   power.request(0.80, 350);
   assert.deepEqual(power.sample(10000), { shutdown: 0, phase: "on", animating: false });
   power.request(0.90, 11000);
-  assert.equal(power.sample(11000 + POWER.settleMs + 450).shutdown, 0.5);
+  assert.equal(power.sample(11000 + offHalfway).shutdown, 0.5);
 });
 
 test("hero exit and complete résumé still precede the power threshold", () => {

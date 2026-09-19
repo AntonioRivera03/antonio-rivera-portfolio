@@ -50,7 +50,7 @@ The site uses the Sites React/Vinext runtime. Hosting configuration is in `.open
 
 `components/crt-resume.tsx` adds a sticky computer scene after the landing section. `lib/crt/timeline.ts` maps native page scrolling to camera approach and document scrolling. `lib/crt/power.ts` triggers complete timed power animations at the end of the résumé; a return buffer, settling delay, and minimum hold prevent rapid toggling. Scrolling backward restores the document; no wheel or touch events are intercepted.
 
-The computer was modeled in Blender. Its editable source is `assets/blender/computer/computer.blend`. The rounded, tapered white housing has recessed vents and a drive slot; packed color, roughness, and normal maps provide a fine molded ABS texture. `CRT_Screen` is a convex, separately UV-mapped surface whose material is replaced with the document renderer at runtime. The résumé is drawn into a canvas texture with a fixed window title/menu bar, mild barrel distortion and scanlines.
+The computer was modeled in Blender. Its editable source is `assets/blender/computer/computer.blend`. The rounded, tapered white housing has recessed vents and a drive slot; packed color, roughness, and normal maps provide a fine molded ABS texture. `CRT_Screen` is a rounded, convex surface with UVs derived from its physical position. Its material is replaced with the document renderer at runtime. The résumé fills a matching rounded aperture with a fixed title/menu bar, mild barrel distortion and scanlines; the glass edge and surround share one charcoal color.
 
 To regenerate the computer and inspection renders:
 

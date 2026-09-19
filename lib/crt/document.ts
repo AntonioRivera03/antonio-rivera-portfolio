@@ -5,6 +5,9 @@ const WIDTH = 1024;
 const HEIGHT = 768;
 const CHROME = 110;
 const MARGIN = 70;
+const PAPER = "#e4e3dc";
+const TITLE = "resume.txt";
+const TITLE_PADDING = 28;
 
 /** Draw the résumé into a clipped document pane; window chrome never scrolls. */
 export function createResumeDocument(resume: Resume) {
@@ -76,7 +79,7 @@ export function createResumeDocument(resume: Resume) {
     pageHeight = Math.max(HEIGHT - CHROME - 26, Math.ceil(y + MARGIN));
     page.width = WIDTH - 30;
     page.height = pageHeight;
-    pageContext!.fillStyle = "#e9e9dc";
+    pageContext!.fillStyle = PAPER;
     pageContext!.fillRect(0, 0, page.width, page.height);
     pageContext!.textBaseline = "top";
     for (const line of lines) {
@@ -93,27 +96,32 @@ export function createResumeDocument(resume: Resume) {
     const ctx = context!;
     const paneHeight = HEIGHT - CHROME - 22;
     const offset = Math.max(0, pageHeight - paneHeight) * progress;
-    ctx.fillStyle = "#b4b9ac";
+    ctx.fillStyle = PAPER;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    ctx.fillStyle = "#d3d6c7";
-    ctx.fillRect(18, 15, WIDTH - 36, CHROME - 19);
-    ctx.strokeStyle = "#555d50";
+    ctx.strokeStyle = "#555753";
     ctx.lineWidth = 3;
-    ctx.strokeRect(18, 15, WIDTH - 36, HEIGHT - 30);
-    ctx.beginPath(); ctx.moveTo(18, 64); ctx.lineTo(WIDTH - 18, 64); ctx.stroke();
+    // The viewer fills the glass; its perimeter is rounded once by the CRT aperture.
+    ctx.beginPath();
+    ctx.moveTo(0, 64); ctx.lineTo(WIDTH, 64);
+    ctx.moveTo(0, CHROME - 3); ctx.lineTo(WIDTH, CHROME - 3);
+    ctx.stroke();
     // The striped title bar and square close box echo early desktop document readers.
+    ctx.font = "bold 29px 'Courier New', monospace";
+    const titleWidth = ctx.measureText(TITLE).width;
+    const titleLeft = (WIDTH - titleWidth) / 2 - TITLE_PADDING;
+    const titleRight = (WIDTH + titleWidth) / 2 + TITLE_PADDING;
     ctx.lineWidth = 2;
     for (let y = 27; y < 57; y += 6) {
-      ctx.beginPath(); ctx.moveTo(70, y); ctx.lineTo(WIDTH - 40, y); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(70, y); ctx.lineTo(titleLeft, y);
+      ctx.moveTo(titleRight, y); ctx.lineTo(WIDTH - 40, y);
+      ctx.stroke();
     }
-    ctx.fillStyle = "#d3d6c7";
-    ctx.fillRect(320, 20, 384, 41);
-    ctx.strokeRect(32, 28, 23, 23);
-    ctx.fillStyle = "#293327";
+    ctx.strokeRect(48, 28, 23, 23);
+    ctx.fillStyle = "#2b2e2a";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = "bold 29px 'Courier New', monospace";
-    ctx.fillText("resume — antonio rivera", WIDTH / 2, 42);
+    ctx.fillText(TITLE, WIDTH / 2, 42);
     ctx.textAlign = "left";
     ctx.font = "27px 'Courier New', monospace";
     ctx.fillText("File   Edit   View", 40, 85);
@@ -121,10 +129,10 @@ export function createResumeDocument(resume: Resume) {
     ctx.beginPath(); ctx.rect(20, CHROME, WIDTH - 50, paneHeight); ctx.clip();
     ctx.drawImage(page, 20, CHROME - offset);
     ctx.restore();
-    ctx.fillStyle = "#a3aa9b";
+    ctx.fillStyle = "#b9bcb4";
     ctx.fillRect(WIDTH - 28, CHROME, 10, paneHeight);
     const thumbHeight = Math.max(40, paneHeight * Math.min(1, paneHeight / pageHeight));
-    ctx.fillStyle = "#596451";
+    ctx.fillStyle = "#666b62";
     ctx.fillRect(WIDTH - 28, CHROME + (paneHeight - thumbHeight) * progress, 10, thumbHeight);
     texture.needsUpdate = true;
   }

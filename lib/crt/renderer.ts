@@ -1,11 +1,11 @@
 import {
-  ACESFilmicToneMapping, HemisphereLight, DirectionalLight, Group, Material, Mesh,
+  ACESFilmicToneMapping, HemisphereLight, DirectionalLight, Group, Material, Mesh, MeshBasicMaterial,
   PCFShadowMap, PerspectiveCamera, PlaneGeometry, Scene, ShadowMaterial, Texture,
   Vector3, WebGLRenderer,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { createResumeDocument } from "./document";
-import { createCrtMaterial } from "./screen-material";
+import { createCrtMaterial, CRT_GLASS_COLOR } from "./screen-material";
 import { getCrtTimeline } from "./timeline";
 import { createCrtPower } from "./power";
 import type { Resume } from "./resume";
@@ -74,7 +74,7 @@ export function createCrtRenderer(
 
   const camera = new PerspectiveCamera(35, 1, 0.05, 150);
   const finalPosition = new Vector3();
-  const finalTarget = new Vector3(0, 2.7, 0.91);
+  const finalTarget = new Vector3(0, 2.76, 0.91);
   const document = createResumeDocument(resume);
   const screenMaterial = createCrtMaterial(document.texture);
   const abort = new AbortController();
@@ -119,10 +119,10 @@ export function createCrtRenderer(
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
 
-    // Fill 60% of desktop width, while keeping the whole casing inside short viewports.
+    // Move closer to the display, leaving room for the casing in shorter viewports.
     const monitorPixels = Math.min(
-      width * (width < 700 ? 0.93 : 0.6),
-      height * 0.85 * COMPUTER_WIDTH / COMPUTER_HEIGHT,
+      width * (width < 700 ? 0.96 : 0.68),
+      height * 0.90 * COMPUTER_WIDTH / COMPUTER_HEIGHT,
     );
     const distance = COMPUTER_WIDTH * height / (2 * Math.tan(camera.fov * Math.PI / 360) * monitorPixels);
     finalPosition.set(0.08, finalTarget.y + 0.06, SCREEN_CENTER.z + distance);
@@ -173,7 +173,18 @@ export function createCrtRenderer(
       screen.material = screenMaterial;
       (Array.isArray(original) ? original : [original]).forEach((material) => material.dispose());
       model.traverse((node) => {
-        if (node instanceof Mesh) { node.castShadow = node !== screen; node.receiveShadow = node !== screen; }
+        if (!(node instanceof Mesh)) return;
+        node.castShadow = node !== screen;
+        node.receiveShadow = node !== screen;
+        // The narrow glass surround and the unlit screen share one output color.
+        const matchGlass = (material: Material) => {
+          if (material.name.replace(/\.\d+$/, "") !== "CRT · graphite inner bezel") return material;
+          const glass = new MeshBasicMaterial({ color: CRT_GLASS_COLOR, toneMapped: false });
+          glass.name = material.name;
+          material.dispose();
+          return glass;
+        };
+        node.material = Array.isArray(node.material) ? node.material.map(matchGlass) : matchGlass(node.material);
       });
       scene.add(model);
       resize();

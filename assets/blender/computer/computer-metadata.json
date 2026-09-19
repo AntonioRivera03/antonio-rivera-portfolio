@@ -1,11 +1,12 @@
 {
   "glb": "public/computer/computer.glb",
   "blend": "assets/blender/computer/computer.blend",
-  "bytes": 3237880,
+  "bytes": 3289292,
   "screen": {
     "name": "CRT_Screen",
     "width": 1.4,
     "height": 1.05,
+    "corner_radius": 0.055,
     "world_center": [
       0,
       2.99,
@@ -29,7 +30,7 @@
         0.94
       ]
     },
-    "uv": "Lower-left [0,0]; upper-right [1,1]; full 4:3 rectangle",
+    "uv": "Physical XY maps to full [0,1] rectangle; V increases upward. Radius 0.055 clips corner pixels without stretching.",
     "normal": "Front +Z. One opaque surface. No glass overlay."
   },
   "coordinates": "glTF Y up, front +Z; model root has no authored transform",
@@ -61,5 +62,5 @@
   },
   "mesh_count": 26,
   "runtime_mesh_count": 7,
-  "vertices": 43685
+  "vertices": 44861
 }
