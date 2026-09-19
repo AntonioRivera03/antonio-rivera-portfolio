@@ -1,7 +1,7 @@
 {
-  "glb": "/tmp/portfolio-apple-assets/apple.glb",
-  "blend": "/tmp/portfolio-apple-assets/apple.blend",
-  "generator": "/tmp/portfolio-apple-assets/create_apple.py",
+  "glb": "public/apple/apple.glb",
+  "blend": "assets/blender/apple.blend",
+  "generator": "assets/blender/create_apple.py",
   "bytes": 858944,
   "blender_bounds": {
     "min": [
