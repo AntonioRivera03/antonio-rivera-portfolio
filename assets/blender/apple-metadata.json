@@ -1,0 +1,34 @@
+{
+  "glb": "/tmp/portfolio-apple-assets/apple.glb",
+  "blend": "/tmp/portfolio-apple-assets/apple.blend",
+  "generator": "/tmp/portfolio-apple-assets/create_apple.py",
+  "bytes": 858944,
+  "blender_bounds": {
+    "min": [
+      -0.9951282143592834,
+      -0.9785254597663879,
+      -0.9343504905700684
+    ],
+    "max": [
+      1.0446360111236572,
+      0.9938048124313354,
+      1.5193461179733276
+    ]
+  },
+  "gltf_axis": "Y up; Blender +Z becomes glTF +Y; front is glTF +Z",
+  "mesh_count": 21,
+  "vertices_before_modifiers": 16949,
+  "suggested_camera": {
+    "position": [
+      0,
+      0.38,
+      5.6
+    ],
+    "target": [
+      0,
+      0.24,
+      0
+    ],
+    "orthographic_height": 3.1
+  }
+}
