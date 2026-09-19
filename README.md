@@ -68,4 +68,16 @@ Document-layout and power-transition regression checks (Node 22.13+):
 node --experimental-strip-types tests/crt-power.test.mjs
 node --experimental-strip-types tests/crt-document.test.mjs
 node --experimental-strip-types tests/crt-companion.test.mjs
+node --experimental-strip-types tests/portfolio-journey.test.mjs
+node --experimental-strip-types tests/room-layout.test.mjs
 ```
+
+## Skills and room
+
+`lib/crt/journey.ts` extends the same scroll scene after Passions. The 68 skills in `lib/skills.ts` appear once across two perspective columns. Their measured height controls scroll distance. The computer centers, its eyes merge, and the camera enters the circle before returning to the white room. Forward and reverse progress share one controller, including jumps to the page ends.
+
+`components/room.tsx` contains the project links and personal slides. Each fully lit slide stays on for 25 seconds, with a CRT shutdown and startup between slides. Hover, keyboard focus, hidden tabs, and the expanded cloud view pause automatic cycling. The small slide controls also work with reduced motion. The cloud panel opens a full-screen view with Escape and a back button to return.
+
+The furniture is a Blender model in `assets/blender/room/room.blend`; `generator.py` preserves the procedural source. The website loads the self-contained `public/room/room.glb`, with a rendered PNG fallback. Supplied personal photos are in `public/about/`. Profile education follows the public résumé in `AntonioRivera03/portfolio`; the contact links follow the supplied brief.
+
+Room furniture faces inward at 45°. A shared 12° camera projects the floating panels at 30° above their furniture; narrow layouts use readable document flow. The Blender `Working` animation loops while the room is visible and pauses for reduced motion, hidden tabs, and the cloud view. The cloud panel centers for 1.1 seconds, expands for 2.3 seconds, then fades in the subtitle beneath its persistent title.

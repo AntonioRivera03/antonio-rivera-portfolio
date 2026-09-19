@@ -11,6 +11,7 @@ export function createCrtMaterial(document: Texture, faceBackground: string) {
       shutdown: { value: 0 },
       glassColor: { value: new Color(CRT_GLASS_COLOR) },
       eyes: { value: 0 },
+      merge: { value: 0 },
       gaze: { value: new Vector2() },
       blink: { value: 1 },
       faceBackground: { value: new Color(faceBackground) },
@@ -27,6 +28,7 @@ export function createCrtMaterial(document: Texture, faceBackground: string) {
       uniform float shutdown;
       uniform vec3 glassColor;
       uniform float eyes;
+      uniform float merge;
       uniform vec2 gaze;
       uniform float blink;
       uniform vec3 faceBackground;
@@ -38,7 +40,7 @@ export function createCrtMaterial(document: Texture, faceBackground: string) {
       }
 
       float eyeDistance(vec2 point, vec2 radii) {
-        point.x = abs(point.x) - 0.31;
+        point.x = abs(point.x) - 0.31 * (1.0 - merge);
         return (length(point / radii) - 1.0) * min(radii.x, radii.y);
       }
 
@@ -62,7 +64,7 @@ export function createCrtMaterial(document: Texture, faceBackground: string) {
         // The same curved glass becomes a dark LED-like face after the retreat.
         vec2 eyePoint = curved - gaze;
         float eyeHeight = max(0.012, 0.225 * blink);
-        vec2 eyeRadii = vec2(0.105, eyeHeight);
+        vec2 eyeRadii = mix(vec2(0.105, eyeHeight), vec2(0.32 / 0.7, 0.32 / 0.525), merge);
         float centerDistance = eyeDistance(eyePoint, eyeRadii);
         // Separate the eye channels slightly; their shared interiors stay white.
         vec2 channelOffset = vec2(0.014, 0.0015);
