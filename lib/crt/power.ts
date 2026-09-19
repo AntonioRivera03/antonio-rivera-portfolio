@@ -2,7 +2,7 @@ export const POWER = {
   offThreshold: 0.87,
   onThreshold: 0.85,
   settleMs: 160,
-  offDurationMs: 900,
+  offDurationMs: 450,
   onDurationMs: 700,
   holdMs: 240,
 } as const;

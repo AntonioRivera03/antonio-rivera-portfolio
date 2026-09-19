@@ -4,7 +4,7 @@ Creates a separate Resume Computer scene and preserves existing user scenes.
 Exports a Y-up GLB with an unobstructed, UV-mapped CRT_Screen mesh.
 """
 from pathlib import Path
-from math import sin, cos, pi
+from math import sin, cos, pi, sqrt
 import json
 import argparse
 import sys
@@ -51,13 +51,13 @@ def material(name, rgb, roughness=0.5, metallic=0.0):
 
 cream = material('CRT · neutral off-white ABS', (0.85, 0.849, 0.837), 0.60)
 cream_front = material('CRT · molded off-white front', (0.85, 0.849, 0.837), 0.60)
-bezel_mat = material('CRT · graphite inner bezel', (0.022, 0.027, 0.024), 0.42)
-screen_mat = material('CRT · opaque glass placeholder', (0.009, 0.020, 0.020), 0.23)
+bezel_mat = material('CRT · graphite inner bezel', (0.015, 0.015, 0.015), 0.42)
+screen_mat = material('CRT · opaque glass placeholder', (0.015, 0.015, 0.015), 0.23)
 screen_shader = screen_mat.node_tree.nodes.get('Principled BSDF')
 screen_shader.inputs['Coat Weight'].default_value = 0.27
 screen_shader.inputs['Coat Roughness'].default_value = 0.19
-screen_shader.inputs['Emission Color'].default_value = (0.012, 0.030, 0.025, 1)
-screen_shader.inputs['Emission Strength'].default_value = 0.2
+screen_shader.inputs['Emission Color'].default_value = (0, 0, 0, 1)
+screen_shader.inputs['Emission Strength'].default_value = 0
 recess_mat = material('Case · shadowed recesses', (0.045, 0.044, 0.035), 0.85)
 metal_mat = material('Hardware · warm dull nickel', (0.36, 0.34, 0.29), 0.44, 0.6)
 led_mat = material('Power · muted green', (0.12, 0.31, 0.11), 0.29)
@@ -270,18 +270,25 @@ frame = loft('CRT rounded open front surround', loops, cream_front, close_ends=F
 rounded_box('CRT recessed dark gasket', (0, -0.811, 2.99), (1.49, 0.09, 1.135), bezel_mat, 0.065, 12)
 
 
-# Full rectangular 4:3 UV layout on one convex opaque surface; no overlay glass.
-columns, rows = 48, 36
+# Rounded physical glass clips corner pixels while retaining a full rectangular
+# 4:3 coordinate system. Dense arc rows keep the small corner radius smooth.
+columns = 48
+half_width, half_height, corner_radius = 0.7, 0.525, 0.055
+arc_angles = np.linspace(0, pi / 2, 13)
+row_heights = (
+    [-half_height + corner_radius * (1 - cos(angle)) for angle in arc_angles]
+    + list(np.linspace(-half_height + corner_radius, half_height - corner_radius, 37)[1:-1])
+    + [half_height - corner_radius + corner_radius * sin(angle) for angle in arc_angles]
+)
 vertices, faces = [], []
-for j in range(rows + 1):
-    v = j / rows
-    z = (v - 0.5) * 1.05
+for z in row_heights:
+    edge_offset = max(0, abs(z) - (half_height - corner_radius))
+    extent = half_width - corner_radius + sqrt(max(0, corner_radius ** 2 - edge_offset ** 2))
     for i in range(columns + 1):
-        u = i / columns
-        x = (u - 0.5) * 1.40
-        bow = 0.08 * max(0, (1 - (2 * u - 1) ** 2) * (1 - (2 * v - 1) ** 2))
+        x = (2 * i / columns - 1) * extent
+        bow = 0.08 * max(0, (1 - (x / half_width) ** 2) * (1 - (z / half_height) ** 2))
         vertices.append((x, -0.86 - bow, z))
-for j in range(rows):
+for j in range(len(row_heights) - 1):
     for i in range(columns):
         a = j * (columns + 1) + i
         faces.append((a, a + 1, a + columns + 2, a + columns + 1))
@@ -289,9 +296,10 @@ screen = mesh_object('CRT_Screen', vertices, faces, screen_mat, smooth=True)
 screen.location = (0, 0, 2.99)
 uv = screen.data.uv_layers.new(name='Screen UV')
 for loop in screen.data.loops:
-    index = loop.vertex_index
-    # Blender's glTF exporter flips V. Invert here so exported lower-left is 0,0.
-    uv.data[loop.index].uv = ((index % (columns + 1)) / columns, 1 - (index // (columns + 1)) / rows)
+    position = screen.data.vertices[loop.vertex_index].co
+    # Blender flips V on glTF export; UVs follow physical coordinates, not rows.
+    uv.data[loop.index].uv = (position.x / (2 * half_width) + 0.5, 0.5 - position.z / (2 * half_height))
+screen['corner_radius'] = corner_radius
 screen['role'] = 'Replace this single opaque material with live document. No overlay glass.'
 screen['screen_width'] = 1.4
 screen['screen_height'] = 1.05
@@ -431,11 +439,11 @@ metadata = {
     'blend': str(OUTPUT / 'source.blend'),
     'bytes': (OUTPUT / 'computer.glb').stat().st_size,
     'screen': {
-        'name': 'CRT_Screen', 'width': 1.4, 'height': 1.05,
+        'name': 'CRT_Screen', 'width': 1.4, 'height': 1.05, 'corner_radius': 0.055,
         'world_center': [0, 2.99, 0.94], 'world_edge_depth': 0.86,
         'object_translation': [0, 2.99, 0],
         'local_bounds': {'min': [-0.7, -0.525, 0.86], 'max': [0.7, 0.525, 0.94]},
-        'uv': 'Lower-left [0,0]; upper-right [1,1]; full 4:3 rectangle',
+        'uv': 'Physical XY maps to full [0,1] rectangle; V increases upward. Radius 0.055 clips corner pixels without stretching.',
         'normal': 'Front +Z. One opaque surface. No glass overlay.',
     },
     'coordinates': 'glTF Y up, front +Z; model root has no authored transform',

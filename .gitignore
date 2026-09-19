@@ -49,3 +49,5 @@ next-env.d.ts
 __pycache__/
 
 /assets/blender/computer/generated/
+
+/assets/blender/room/generated/
