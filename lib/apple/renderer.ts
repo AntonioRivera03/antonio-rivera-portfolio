@@ -166,7 +166,7 @@ export function createAppleRenderer(canvas: HTMLCanvasElement, onReady: (ready: 
       apple.scale.setScalar(scale);
       apple.rotation.y = -0.35;
       resize();
-      onReady(true);
+      onReady(!contextLost);
       syncAnimation();
     })
     .catch((error: unknown) => {
