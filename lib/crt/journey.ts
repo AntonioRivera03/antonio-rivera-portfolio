@@ -42,6 +42,31 @@ export function getJourneyDistance(viewport: number, listHeight: number) {
   return Math.max(viewport * 4.5, (viewport + listHeight + 144) * 0.85 / (JOURNEY.listsEnd - JOURNEY.listsStart));
 }
 
+/** Scroll offsets, from the top of the story, where each chapter reads best. */
+export function getChapterStops(story: {
+  resumeDistance: number; viewport: number; journeyDistance: number; listHeight: number;
+  /** PASSIONS.travelViewports and STAGES.approachEnd, passed in to keep this module dependency-free. */
+  passionsViewports: number; readingStart: number;
+}) {
+  const { resumeDistance, viewport, journeyDistance, listHeight } = story;
+  const passionsTravel = viewport * story.passionsViewports;
+  const journeyStart = resumeDistance + passionsTravel;
+  // Stop once the first skill groups have risen into the lower half of the screen.
+  const lists = clamp((viewport * 0.72 + 48) / (viewport + listHeight + 144));
+  return {
+    resume: resumeDistance * (story.readingStart + 0.03),
+    passions: resumeDistance + passionsTravel * 0.8,
+    skills: journeyStart + journeyDistance * (JOURNEY.listsStart + lists * (JOURNEY.listsEnd - JOURNEY.listsStart)),
+    projects: journeyStart + journeyDistance,
+  };
+}
+
+/** While the skills pass, the companion's eyes drift between the two columns as if reading. */
+export function getReadingGaze(lists: number) {
+  const weight = lists > 0 && lists < 1 ? Math.sin(Math.PI * lists) ** 0.6 : 0;
+  return { x: 0.11 * Math.sin(lists * Math.PI * 7), y: 0.03, weight };
+}
+
 /** All visual channels use this displayed position, including fast scroll jumps. */
 export function createPortfolioSequence(companion: ReturnType<typeof createCompanionSequence>) {
   let position = 0;

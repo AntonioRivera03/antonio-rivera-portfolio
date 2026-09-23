@@ -9,7 +9,7 @@ import { createCrtMaterial, CRT_GLASS_COLOR } from "./screen-material";
 import { getCrtTimeline } from "./timeline";
 import { createCompanionSequence, getCompanionExpression, getCompanionFraming } from "./companion";
 import { createCrtPower } from "./power";
-import { createPortfolioSequence, getMergeStart, type getJourneyTimeline } from "./journey";
+import { createPortfolioSequence, getMergeStart, getReadingGaze, type getJourneyTimeline } from "./journey";
 import type { Resume } from "./resume";
 
 const SCREEN_CENTER = new Vector3(0, 2.99, 0.91);
@@ -127,7 +127,10 @@ export function createCrtRenderer(
     const expression = getCompanionExpression(presentation.companionTime);
     screenMaterial.uniforms.shutdown.value = presentation.power.shutdown;
     screenMaterial.uniforms.eyes.value = presentation.display === "eyes" ? 1 : 0;
-    screenMaterial.uniforms.gaze.value.set(expression.gazeX * (1 - next.merge), expression.gazeY * (1 - next.merge));
+    const reading = getReadingGaze(next.lists);
+    const gazeX = expression.gazeX + (reading.x - expression.gazeX) * reading.weight;
+    const gazeY = expression.gazeY + (reading.y - expression.gazeY) * reading.weight;
+    screenMaterial.uniforms.gaze.value.set(gazeX * (1 - next.merge), gazeY * (1 - next.merge));
     screenMaterial.uniforms.blink.value = expression.blink + (1 - expression.blink) * next.merge;
     screenMaterial.uniforms.merge.value = next.merge;
     model.rotation.y = companionYaw * presentation.retreat * (1 - next.center);

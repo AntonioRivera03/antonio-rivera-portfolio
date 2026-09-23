@@ -1,6 +1,8 @@
 export interface ResumeEntry {
   title: string;
   detail?: string;
+  /** Where the detail line points in the accessible résumé. */
+  link?: string;
   date?: string;
   paragraphs?: string[];
 }
@@ -47,19 +49,35 @@ export const resume: Resume = {
       {
         title: "LivedMatch [Research Startup]",
         detail: "livedmatch.com",
+        link: "https://www.livedmatch.com/",
         paragraphs: ["Built a patient-trial matching platform with researchers in Canada, using compatibility scoring to support more objective participant selection. Added role-based access, automated outreach, and a deployment pipeline for testing new features."],
       },
       {
         title: "Aycorn [Integrations]",
+        detail: "github.com/AntonioRivera03/AIcorn",
+        link: "https://github.com/AntonioRivera03/AIcorn",
         paragraphs: ["Integrated AI agents into Aycorn to plan tasks, implement changes, and review code. Added isolated development workspaces and Kubernetes previews for testing application versions before merging changes."],
       },
       {
         title: "Magnolia",
+        detail: "github.com/AntonioRivera03/JournalAssistant",
+        link: "https://github.com/AntonioRivera03/JournalAssistant",
         paragraphs: ["Built a PDF reader that connects highlighted passages to saved AI conversations. Added local OCR, semantic search, and source citations to help readers explore documents and return to the relevant pages."],
       },
       {
         title: "DocViewer",
+        detail: "github.com/AntonioRivera03/DocViewer",
+        link: "https://github.com/AntonioRivera03/DocViewer",
         paragraphs: ["Built a native Linux application for reading PDFs and editing text and Markdown documents. Added folder navigation, continuous PDF scrolling, and Markdown previews in a lightweight desktop interface."],
+      },
+    ],
+  }, {
+    title: "Education",
+    entries: [
+      {
+        title: "Texas A&M University–Central Texas",
+        date: "December 2023",
+        detail: "B.S. Computer Information Systems",
       },
     ],
   }],

@@ -17,7 +17,7 @@ export function createRoomRenderer(canvas: HTMLCanvasElement, root: HTMLElement,
   renderer.shadowMap.type = PCFShadowMap;
   const scene = new Scene();
   const camera = new PerspectiveCamera(34, 1, 0.1, 100);
-  let bounds = new Box3(new Vector3(-4.17, 0, -1.67), new Vector3(3.49, 1.95, 1.59));
+  let bounds = new Box3(new Vector3(-4.17, 0, -1.67), new Vector3(3.77, 2.23, 2.31));
   scene.add(new HemisphereLight(0xffffff, 0xc6c4c0, 2.3));
   const key = new DirectionalLight(0xfff7ee, 3.2);
   key.position.set(-4, 9, 6);
@@ -97,8 +97,14 @@ export function createRoomRenderer(canvas: HTMLCanvasElement, root: HTMLElement,
     return response.arrayBuffer();
   }).then((buffer) => new GLTFLoader().parseAsync(buffer, "")).then((gltf) => {
     scene.add(gltf.scene);
+    // The bedding and desk grain are seen at a grazing angle; anisotropy keeps them crisp.
+    const anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
     gltf.scene.traverse((node) => {
-      if (node instanceof Mesh) { node.castShadow = true; node.receiveShadow = true; }
+      if (!(node instanceof Mesh)) return;
+      node.castShadow = true; node.receiveShadow = true;
+      for (const material of Array.isArray(node.material) ? node.material : [node.material]) {
+        if (material.map) material.map.anisotropy = anisotropy;
+      }
     });
     if (disposed) { release(); return; }
     bounds = new Box3().setFromObject(gltf.scene);

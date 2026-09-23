@@ -9,6 +9,7 @@
   --passions-background: #181a19;
   --passions-foreground: #f2f2ef;
   --passions-muted: #b8bcb8;
+  --ink: #33508e;
 }
 
 * { box-sizing: border-box; }
@@ -113,48 +114,45 @@ h1 {
 
 .intro-apple { width: 100%; min-width: 0; }
 .identity h1 { position: relative; }
-.intro-name-typing { display: none; position: absolute; top: 0; left: 0; white-space: pre; }
 .intro-cursor {
-  display: inline-block;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 0.5em;
   height: 0.92em;
-  margin-left: 0.055em;
-  vertical-align: -0.055em;
   background: currentColor;
+  pointer-events: none;
   visibility: var(--intro-cursor, hidden);
 }
 .portfolio[data-intro-phase="typing"] .intro-cursor { animation: intro-cursor-blink 600ms steps(1, end) infinite; }
 
 @keyframes intro-cursor-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
 
-/* Reserve the finished composition while its visual layers arrive in sequence. */
-.portfolio[data-intro="running"] .apple {
-  opacity: var(--intro-apple-opacity, 0);
+/* The intro only drives these variables; their finished values are the defaults, so
+   nothing about the title is re-rendered when the intro completes. The name is typed
+   by revealing the heading's own characters, never by swapping in other text. */
+.intro-apple .apple {
+  opacity: var(--intro-apple-opacity, 1);
   transform: translate3d(var(--intro-apple-x, 0px), var(--intro-apple-y, 0px), 0);
-  will-change: transform, opacity;
 }
-.portfolio[data-intro="running"] .intro-name-layout { opacity: 0; }
-.portfolio[data-intro="running"] .intro-name-typing { display: block; }
-.portfolio[data-intro="running"] .role {
-  opacity: var(--intro-role-opacity, 0);
+.portfolio[data-intro-phase="fade"] .apple,
+.portfolio[data-intro-phase="slide"] .apple { will-change: transform, opacity; }
+.identity .role {
+  opacity: var(--intro-role-opacity, 1);
   mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent);
-  mask-size: var(--intro-role-width, 0%) 100%;
+  mask-size: var(--intro-role-width, 160%) 100%;
   mask-position: center;
   mask-repeat: no-repeat;
 }
-html:has(.portfolio[data-intro="running"]),
-html:has(.portfolio[data-intro="running"]) body {
-  overflow: hidden;
-  overscroll-behavior: none;
-}
+/* The intro script holds the scroll position. Hiding overflow here would drop the
+   scrollbar, and its return would shift the centred title as the intro ends. */
+html:has(.portfolio[data-intro="running"]) { overscroll-behavior: none; }
 
 /* Avoid a flash of the finished hero before hydration; no-JS stays readable. */
 @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
   .portfolio[data-intro="pending"] .apple,
-  .portfolio[data-intro="pending"] .intro-name-layout,
+  .portfolio[data-intro="pending"] .intro-name,
   .portfolio[data-intro="pending"] .role { opacity: 0; }
-  html:has(.portfolio[data-intro="pending"]),
-  html:has(.portfolio[data-intro="pending"]) body { overflow: hidden; }
 }
 
 @media (max-width: 700px) {
@@ -305,8 +303,16 @@ html:has(.portfolio[data-intro="running"]) body {
 .skills-side { position: absolute; top: 0; bottom: 0; width: 31%; perspective: 1100px; }
 .skills-side-0 { left: 4%; --skills-angle: 13deg; }
 .skills-side-1 { right: 4%; --skills-angle: -13deg; }
-.skills-side ul { position: absolute; inset: 0 0 auto; list-style: none; margin: 0; padding: 0; transform-origin: center top; transform: rotateY(var(--skills-angle)) translateY(var(--skills-y, 100vh)); will-change: transform; }
-.skills-side li { margin: 0 0 1.65rem; font-size: clamp(1rem, 2.1vw, 2rem); line-height: 1.32; font-weight: 400; text-align: center; color: var(--passions-foreground); text-shadow: -1px 0 #dc667f, 1px 0 #60dbe8; overflow-wrap: anywhere; }
+.skill-groups, .skill-groups ul { list-style: none; margin: 0; padding: 0; }
+.skills-side > .skill-groups { position: absolute; inset: 0 0 auto; transform-origin: center top; transform: rotateY(var(--skills-angle)) translateY(var(--skills-y, 100vh)); will-change: transform; }
+.skills-side .skill-group { margin: 0 0 clamp(3.25rem, 8vh, 6rem); text-align: center; }
+.skill-group-title { font-family: "Courier New", Courier, monospace; letter-spacing: .14em; }
+.skills-side .skill-group-title { display: flex; align-items: center; gap: .9rem; max-width: 15rem; margin: 0 auto 1.5rem; font-size: .8rem; line-height: 1; color: var(--passions-muted); opacity: .6; }
+.skills-side .skill-group-title::before, .skills-side .skill-group-title::after { content: ""; flex: 1; height: 1px; background: currentColor; opacity: .55; }
+/* Daily tools read first; the rest stay present but quiet. */
+.skills-side .skill-group li { margin: 0 0 .5rem; font-size: clamp(.82rem, 1.15vw, 1.1rem); line-height: 1.35; color: var(--passions-muted); opacity: .7; overflow-wrap: anywhere; }
+.skills-side .skill-group li.skill-core { margin-bottom: 1.05rem; font-size: clamp(1rem, 2.1vw, 2rem); line-height: 1.3; color: var(--passions-foreground); opacity: 1; text-shadow: -1px 0 #dc667f, 1px 0 #60dbe8; }
+.skills-side .skill-group li.skill-core:last-of-type { margin-bottom: 1.4rem; }
 .journey-white { display: none; position: absolute; z-index: 3; inset: 0; background: var(--background); opacity: var(--journey-white, 0); pointer-events: none; }
 .crt-story[data-enhanced="true"] .journey-white { display: block; }
 .room-overlay { width: 100%; }
@@ -314,8 +320,11 @@ html:has(.portfolio[data-intro="running"]) body {
 .crt-story[data-enhanced="true"] .passions-overlay { top: calc(var(--crt-window-height, 100svh) * .5); }
 .skills-static { padding: 4rem max(1.5rem, calc((100% - 800px) / 2)); }
 .skills-static h2 { font-weight: 400; font-size: 2rem; }
-.skills-static ul { columns: 2; padding: 0; list-style: none; line-height: 1.5; }
-.skills-static li { margin-bottom: .7rem; break-inside: avoid; }
+.skills-static > .skill-groups { columns: 2; column-gap: 3rem; line-height: 1.5; }
+.skills-static .skill-group { break-inside: avoid; margin-bottom: 2rem; }
+.skills-static .skill-group-title { margin: 0 0 .6rem; font-size: .8rem; color: var(--muted); }
+.skills-static .skill-group li { margin-bottom: .3rem; }
+.skills-static .skill-core { font-weight: 600; }
 .crt-story[data-enhanced="true"] .skills-static { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); padding: 0; }
 .crt-story:not([data-enhanced="true"]) { display: flex; flex-direction: column; }
 .crt-story:not([data-enhanced="true"]) .crt-viewport { display: contents; }
@@ -400,7 +409,9 @@ html:has(.portfolio[data-intro="running"]) body {
   .skills-side { width: 32%; }
   .skills-side-0 { left: 2%; --skills-angle: 8deg; }
   .skills-side-1 { right: 2%; --skills-angle: -8deg; }
-  .skills-side li { font-size: 1rem; margin-bottom: 1.5rem; }
+  .skills-side .skill-group li { font-size: .78rem; }
+  .skills-side .skill-group li.skill-core { font-size: 1rem; }
+  .skills-side .skill-group-title { gap: .5rem; font-size: .68rem; letter-spacing: .08em; }
   .room { display: grid; grid-template-rows: auto 300px auto; align-content: start; gap: 1.5rem; padding: 3rem 1.5rem; min-height: 100svh; }
   .personal-pane { position: relative; top: auto; left: auto; width: 100%; grid-row: 1; align-self: start; }
   .personal-screen-content { min-height: 280px; }
@@ -435,4 +446,76 @@ html:has(.portfolio[data-intro="running"]) body {
 @media print {
   .skills-static, .crt-story[data-enhanced="true"] .skills-static { position: static; width: auto; height: auto; clip-path: none; overflow: visible; padding: 2rem 0; }
   .room-overlay { display: none; }
+}
+
+/* Section nav: small, quiet, and legible over both the light and the dark scenes. */
+.story-nav { position: fixed; z-index: 20; top: 1rem; right: clamp(1rem, 3vw, 2.25rem); color: #fff; mix-blend-mode: difference; transition: opacity .9s ease, visibility .9s; }
+.story-nav ul { display: flex; gap: clamp(.85rem, 1.6vw, 1.6rem); margin: 0; padding: 0; list-style: none; }
+.story-nav a { position: relative; display: block; padding: .4rem 0; color: inherit; font: .78rem/1 "Courier New", Courier, monospace; letter-spacing: .02em; text-decoration: none; opacity: .58; transition: opacity .3s ease; }
+.story-nav a:hover, .story-nav a:focus-visible, .story-nav a[aria-current] { opacity: 1; }
+.story-nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform .45s cubic-bezier(.2,.7,.2,1); }
+.story-nav a[aria-current]::after { transform: scaleX(1); }
+.story-nav a:focus-visible { outline: 1px solid currentColor; outline-offset: 5px; }
+html:has(.portfolio[data-intro="running"]) .story-nav { opacity: 0; visibility: hidden; }
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  html:has(.portfolio[data-intro="pending"]) .story-nav { opacity: 0; visibility: hidden; }
+}
+@media (max-width: 700px) {
+  .story-nav { top: .7rem; left: 0; right: 0; }
+  .story-nav ul { justify-content: center; gap: .8rem; }
+  .story-nav a { font-size: .72rem; }
+}
+
+/* Current projects reveal a one-line hint on hover. */
+.project-caption { position: absolute; left: 8%; right: 8%; bottom: 7%; font: 5.4cqw/1.3 "Courier New", Courier, monospace; text-align: center; opacity: 0; transform: translateY(6px); transition: opacity .45s ease, transform .45s ease; }
+.project-pane:hover .project-caption, .project-pane:focus-visible .project-caption { opacity: .78; transform: none; }
+
+/* Footer: plain text, then a ballpoint landscape that develops as the page ends. */
+.site-footer { position: relative; background: var(--background); color: var(--foreground); }
+.footer-text { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 1.5rem 3rem; width: min(100% - 3rem, 1120px); margin: 0 auto; padding-top: clamp(5rem, 14vh, 9rem); }
+.footer-name { margin: 0; font-size: clamp(1.6rem, 2.4vw, 2.2rem); line-height: 1.1; letter-spacing: -.045em; }
+.footer-role { margin: .6rem 0 0; color: var(--muted); font: .82rem/1.5 "Courier New", Courier, monospace; }
+.footer-links { display: flex; flex-wrap: wrap; gap: .5rem 1.6rem; margin: 0; padding: 0; list-style: none; font: .9rem/1.4 "Courier New", Courier, monospace; }
+.footer-links a { color: var(--foreground); text-underline-offset: 4px; }
+.footer-links a:focus-visible, .footer-top:focus-visible { outline: 1px solid var(--foreground); outline-offset: 4px; }
+.footer-top { grid-column: 1 / -1; justify-self: end; padding: 0; border: 0; background: none; color: var(--muted); font: .78rem "Courier New", Courier, monospace; cursor: pointer; }
+.footer-top:hover { color: var(--foreground); }
+.footer-drawing { position: relative; width: 100%; height: clamp(250px, 40vw, 760px); margin-top: clamp(-7rem, -6vw, -1.5rem); pointer-events: none; }
+.footer-layer { position: absolute; inset: 0; background: var(--ink); -webkit-mask: var(--layer) left bottom / cover no-repeat; mask: var(--layer) left bottom / cover no-repeat; opacity: calc(var(--p, 1) * var(--alpha, .9)); transform: translate3d(0, calc((1 - var(--p, 1)) * var(--shift, 0px)), 0); will-change: opacity, transform; }
+.footer-sky { --layer: url("/footer/sky.svg"); --shift: -36px; --alpha: .75; }
+.footer-far { --layer: url("/footer/far.svg"); --shift: -24px; --alpha: .8; }
+.footer-mid { --layer: url("/footer/mid.svg"); --shift: -12px; }
+.footer-near { --layer: url("/footer/near.svg"); }
+@media (max-width: 700px) {
+  .footer-text { grid-template-columns: 1fr; padding-top: 4.5rem; }
+  .footer-top { justify-self: start; }
+  .footer-drawing { margin-top: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .footer-layer { transform: none; }
+}
+@media print {
+  .story-nav, .footer-drawing, .footer-top { display: none; }
+}
+
+/* A plain, printable résumé; the PDF is generated from this page. */
+body:has(.resume-page) { background: #fff; }
+body:has(.resume-page)::after { display: none; }
+.resume-page { width: min(100% - 3rem, 720px); margin: 0 auto; padding: 4rem 0 5rem; font-family: Georgia, serif; font-size: .95rem; line-height: 1.55; color: #202220; }
+.resume-page header { margin-bottom: 1.8rem; }
+.resume-page h1 { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 2.1rem; letter-spacing: -.045em; }
+.resume-page .resume-meta { margin: .4rem 0 0; color: #5d615b; font: .8rem/1.6 "Courier New", Courier, monospace; }
+.resume-page .resume-meta a { color: inherit; }
+.resume-page h2 { margin: 1.8rem 0 .7rem; padding-bottom: .3rem; border-bottom: 1px solid #cfd0cb; font: 400 .78rem "Courier New", Courier, monospace; letter-spacing: .14em; text-transform: lowercase; color: #5d615b; }
+.resume-page .resume-entry { margin-bottom: 1.05rem; break-inside: avoid; }
+.resume-page h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.resume-page .resume-entry-heading h3 { flex: 1 1 14rem; min-width: 0; }
+.resume-page .resume-entry p { margin: .2rem 0; }
+.resume-page .resume-entry a { color: #3a4f7d; }
+.resume-page .resume-skills { margin: 0; padding: 0; list-style: none; }
+.resume-page .resume-skills li { display: grid; grid-template-columns: 8.5rem 1fr; margin: 0 0 .35rem; }
+.resume-page .resume-skills span { padding-top: .12rem; color: #5d615b; font: .78rem "Courier New", Courier, monospace; }
+@page { margin: 14mm 16mm; }
+@media print {
+  .resume-page { width: auto; padding: 0; font-size: 10pt; }
 }

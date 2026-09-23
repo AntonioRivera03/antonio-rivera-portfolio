@@ -5,6 +5,7 @@ import { getSlideFrame, SLIDE_CYCLE, SLIDE_DWELL } from "@/lib/room/slides";
 import { LifeView } from "@/components/life-view";
 import { ProjectFace } from "@/components/project-face";
 import { captureLifeOrigin, type LifeOrigin } from "@/lib/room/life";
+import { profile } from "@/lib/profile";
 
 export function Room({ active, animated }: { active: boolean; animated: boolean }) {
   const rootRef = useRef<HTMLElement>(null);
@@ -85,10 +86,12 @@ export function Room({ active, animated }: { active: boolean; animated: boolean 
           <a className="project-pane project-aycorn" href="https://github.com/AntonioRivera03/AIcorn" target="_blank" rel="noreferrer" aria-label="Aycorn — AI integrations for project workflows (opens in a new tab)">
             <span className="project-title chromatic">Aycorn</span>
             <ProjectFace shape="round" active={active && !origin} />
+            <span className="project-caption" aria-hidden="true">ai agents · kubernetes</span>
           </a>
           <a className="project-pane project-livedmatch" href="https://www.livedmatch.com/" target="_blank" rel="noreferrer" aria-label="LivedMatch — Research startup (opens in a new tab)">
             <span className="project-title chromatic">LivedMatch</span>
             <ProjectFace shape="square" active={active && !origin} />
+            <span className="project-caption" aria-hidden="true">patient–trial matching</span>
           </a>
         </div>
       </section>
@@ -103,7 +106,7 @@ export function Room({ active, animated }: { active: boolean; animated: boolean 
                 <p>Texas A&amp;M–Central Texas</p>
                 <p>3.5+ years of experience</p>
                 <p>Austin, Texas</p>
-                <nav aria-label="Antonio’s links"><a href="https://www.linkedin.com/in/antonio-rivera-094438272/" target="_blank" rel="noreferrer">linkedin</a><a href="https://github.com/AntonioRivera03" target="_blank" rel="noreferrer">github</a><a href="mailto:antonio7rivera03@gmail.com">email</a></nav>
+                <nav aria-label="Antonio’s links"><a href={profile.linkedin} target="_blank" rel="noreferrer">linkedin</a><a href={profile.github} target="_blank" rel="noreferrer">github</a><a href={`mailto:${profile.email}`}>email</a></nav>
               </div>
             </div>
             <button className="cloud-slide" type="button" data-active={slide === 1} aria-hidden={slide !== 1} inert={slide !== 1 || !screenOn} onClick={(event) => { if (personalRef.current && rootRef.current) setOrigin(captureLifeOrigin(event.currentTarget, personalRef.current, rootRef.current)); }}>

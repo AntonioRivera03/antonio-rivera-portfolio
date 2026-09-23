@@ -8,14 +8,17 @@ export function LandingIntro({ children }: { children: ReactNode }) {
   const rootRef = useRef<HTMLElement>(null);
   const appleRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLSpanElement>(null);
+  const cursorRef = useRef<HTMLSpanElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const root = rootRef.current;
     const apple = appleRef.current;
     const name = nameRef.current;
+    const cursor = cursorRef.current;
     const content = contentRef.current;
-    if (!root || !apple || !name || !content) return;
+    if (!root || !apple || !name || !cursor || !content) return;
+    const characters = Array.from(name.children) as HTMLElement[];
 
     const motion = matchMedia("(prefers-reduced-motion: reduce)");
     let frame = 0;
@@ -30,6 +33,11 @@ export function LandingIntro({ children }: { children: ReactNode }) {
     const finish = () => {
       complete = true;
       cancelAnimationFrame(frame);
+      // The variables' defaults are the finished look, so clearing them changes nothing on screen.
+      for (const property of ["--intro-apple-opacity", "--intro-apple-x", "--intro-apple-y", "--intro-cursor", "--intro-role-opacity", "--intro-role-width"]) {
+        root.style.removeProperty(property);
+      }
+      characters.forEach((character) => { character.style.visibility = ""; });
       root.dataset.intro = "complete";
       root.dataset.introPhase = "complete";
       apple.inert = false;
@@ -46,13 +54,22 @@ export function LandingIntro({ children }: { children: ReactNode }) {
       root.style.setProperty("--intro-role-opacity", String(state.role));
       root.style.setProperty("--intro-role-width", `${state.role * 160}%`);
       if (state.characters !== lastCharacters) {
-        name.textContent = INTRO_NAME.slice(0, state.characters);
+        characters.forEach((character, index) => { character.style.visibility = index < state.characters ? "" : "hidden"; });
+        placeCursor(state.characters);
         lastCharacters = state.characters;
       }
       if (state.complete) finish();
     };
+    // The block sits just after the last typed character, as the inline cursor did.
+    const placeCursor = (count: number) => {
+      const anchor = characters[Math.max(0, count - 1)];
+      const size = parseFloat(getComputedStyle(anchor).fontSize);
+      const x = count > 0 ? anchor.offsetLeft + anchor.offsetWidth + size * 0.055 : anchor.offsetLeft;
+      cursor.style.transform = `translate(${x}px, ${anchor.offsetTop + size * 0.04}px)`;
+    };
     const measure = () => {
       if (complete) return;
+      lastCharacters = -1;
       // The wrapper stays in the final grid slot; only its child is translated.
       const rect = apple.getBoundingClientRect();
       centerX = document.documentElement.clientWidth / 2 - (rect.left + rect.width / 2);
@@ -120,12 +137,11 @@ export function LandingIntro({ children }: { children: ReactNode }) {
         <div className="composition">
           <div className="intro-apple" ref={appleRef}><AppleAscii /></div>
           <section className="identity" aria-label="Introduction">
-            <h1>
-              <span className="intro-name-layout">{INTRO_NAME}</span>
-              <span className="intro-name-typing" aria-hidden="true">
-                <span ref={nameRef} />
-                <span className="intro-cursor" />
+            <h1 aria-label={INTRO_NAME}>
+              <span ref={nameRef} className="intro-name" aria-hidden="true">
+                {Array.from(INTRO_NAME, (character, index) => <span key={index}>{character}</span>)}
               </span>
+              <span ref={cursorRef} className="intro-cursor" aria-hidden="true" />
             </h1>
             <p className="role">software engineer</p>
           </section>

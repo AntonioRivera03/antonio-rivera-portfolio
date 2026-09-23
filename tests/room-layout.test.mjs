@@ -4,7 +4,7 @@ import { Box3, Matrix4, PerspectiveCamera, Vector3 } from "three";
 import { createPanelLayout, fitRoomCamera, panelCorners, projectPanel, ROOM_PITCH, DESK_CENTER, BED_CENTER } from "../lib/room/layout.ts";
 import { flattenScreenProjection } from "../lib/room/life.ts";
 
-const bounds = new Box3(new Vector3(-4.17, 0, -1.67), new Vector3(3.49, 1.95, 1.59));
+const bounds = new Box3(new Vector3(-4.17, 0, -1.67), new Vector3(3.77, 2.23, 2.31));
 const panels = [createPanelLayout(720, 440, false), createPanelLayout(620, 380, true)];
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-6, `${actual} ≠ ${expected}`);
 

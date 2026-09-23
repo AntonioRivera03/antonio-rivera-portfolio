@@ -6,7 +6,7 @@ export const INTRO = {
   slideEnd: 2100,
   typingStart: 2400,
   characterDuration: 85,
-  roleDuration: 850,
+  roleDuration: 2000,
 } as const;
 
 export const INTRO_TYPING_END = INTRO.typingStart + INTRO_NAME.length * INTRO.characterDuration;

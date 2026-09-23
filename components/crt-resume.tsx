@@ -5,9 +5,27 @@ import { resume } from "@/lib/crt/resume";
 import { getStoryScroll, PASSIONS } from "@/lib/crt/companion";
 import { Passions } from "@/components/passions";
 import { Room } from "@/components/room";
-import { skillColumns, skills } from "@/lib/skills";
-import { clamp, getJourneyDistance, getSkillOffset } from "@/lib/crt/journey";
+import { skillColumns, skillGroups, type SkillGroup } from "@/lib/skills";
+import { clamp, getChapterStops, getJourneyDistance, getSkillOffset } from "@/lib/crt/journey";
+import { STAGES } from "@/lib/crt/timeline";
+import { registerChapterResolver } from "@/lib/story-scroll";
 import type { CrtRenderer } from "@/lib/crt/renderer";
+
+function SkillGroups({ groups }: { groups: readonly SkillGroup[] }) {
+  return (
+    <ul className="skill-groups">
+      {groups.map((group) => (
+        <li key={group.title} className="skill-group">
+          <p className="skill-group-title">{group.title}</p>
+          <ul>
+            {group.core.map((skill) => <li key={skill} className="skill-core">{skill}</li>)}
+            {group.more.map((skill) => <li key={skill}>{skill}</li>)}
+          </ul>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function ResumeContent() {
   return (
@@ -26,7 +44,7 @@ function ResumeContent() {
                 {entry.title && <h4>{entry.title}</h4>}
                 {entry.date && <p className="resume-date">{entry.date}</p>}
               </div>
-              {entry.detail && <p>{entry.detail}</p>}
+              {entry.detail && <p>{entry.link ? <a href={entry.link} target="_blank" rel="noreferrer">{entry.detail}</a> : entry.detail}</p>}
               {entry.paragraphs?.map((text, paragraph) => <p key={paragraph}>{text}</p>)}
             </div>
           ))}
@@ -47,10 +65,12 @@ export function CrtResume() {
   const rendererRef = useRef<CrtRenderer | null>(null);
   const [enhanced, setEnhanced] = useState(false);
   const [documentOpen, setDocumentOpen] = useState(false);
+  const documentOpenRef = useRef(false);
   const [roomActive, setRoomActive] = useState(false);
   const [roomInteractive, setRoomInteractive] = useState(false);
 
   useEffect(() => {
+    documentOpenRef.current = documentOpen;
     if (!documentOpen) return;
     documentRef.current?.focus({ preventScroll: true });
     documentRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
@@ -63,6 +83,7 @@ export function CrtResume() {
     const motion = matchMedia("(prefers-reduced-motion: reduce)");
     let disposed = false;
     let loading = false;
+    let rendered = false;
     let frame = 0;
     let heightFrame = 0;
     let documentDistance = 0;
@@ -86,7 +107,7 @@ export function CrtResume() {
       const copyHeight = passionsRef.current?.scrollHeight ?? 0;
       const mobile = innerWidth <= 700;
       const copyTop = innerHeight <= 650 ? 0.43 : 0.51;
-      listHeight = Math.max(...Array.from(skillsRef.current?.querySelectorAll("ul") ?? [], (list) => list.scrollHeight), 0);
+      listHeight = Math.max(...Array.from(skillsRef.current?.querySelectorAll(".skills-side > .skill-groups") ?? [], (list) => list.scrollHeight), 0);
       journeyDistance = getJourneyDistance(innerHeight, listHeight);
       const roomHeight = roomRef.current?.scrollHeight ?? 0;
       const viewportHeight = Math.ceil(Math.max(innerHeight, roomHeight, mobile ? (copyHeight + 48) / (1 - copyTop) : copyHeight + 96));
@@ -105,6 +126,7 @@ export function CrtResume() {
         const { createCrtRenderer } = await import("@/lib/crt/renderer");
         if (disposed || motion.matches) return;
         rendererRef.current = createCrtRenderer(canvas, resume, (ready) => {
+          rendered = ready;
           if (!disposed) { setEnhanced(ready); requestUpdate(); }
         }, (distance) => { documentDistance = distance; requestHeightUpdate(); }, (wipe, copy, journey) => {
           const viewport = viewportRef.current;
@@ -130,6 +152,7 @@ export function CrtResume() {
       if (motion.matches) {
         rendererRef.current?.dispose();
         rendererRef.current = null;
+        rendered = false;
         setEnhanced(false);
       } else void load();
     };
@@ -147,9 +170,19 @@ export function CrtResume() {
     addEventListener("resize", requestHeightUpdate);
     motion.addEventListener("change", onMotionChange);
     requestHeightUpdate();
+    // Chapters live inside one long scroll track; the nav asks here where each settles.
+    const unregister = registerChapterResolver((chapter) => {
+      if (!rendered || documentOpenRef.current || chapter === "contact") return null;
+      const stops = getChapterStops({
+        resumeDistance, viewport: innerHeight, journeyDistance, listHeight,
+        passionsViewports: PASSIONS.travelViewports, readingStart: STAGES.approachEnd,
+      });
+      return section.getBoundingClientRect().top + scrollY + stops[chapter];
+    });
 
     return () => {
       disposed = true;
+      unregister();
       cancelAnimationFrame(frame);
       cancelAnimationFrame(heightFrame);
       intersection.disconnect();
@@ -170,9 +203,9 @@ export function CrtResume() {
       data-enhanced={enhanced && !documentOpen}
       aria-label="Résumé, passions, skills, and projects"
     >
-      <div ref={documentRef} className="resume-accessible" tabIndex={-1}><ResumeContent /></div>
-      <div className="passions-static"><Passions /></div>
-      <section className="skills-static" aria-label="Skills"><h2>skills</h2><ul>{skills.map((skill) => <li key={skill}>{skill}</li>)}</ul></section>
+      <div ref={documentRef} id="resume" className="resume-accessible" tabIndex={-1}><ResumeContent /></div>
+      <div id="passions" className="passions-static"><Passions /></div>
+      <section id="skills" className="skills-static" aria-label="Skills"><h2>skills</h2><SkillGroups groups={skillGroups} /></section>
       <div ref={viewportRef} className="crt-viewport">
         <div className="passions-wipe" aria-hidden="true" />
         <canvas ref={canvasRef} className="crt-canvas" aria-hidden="true" />
@@ -180,10 +213,10 @@ export function CrtResume() {
         <img className="crt-still" src="/computer/computer-still.png" alt="A white vintage computer." width="1100" height="1100" />
         <div ref={passionsRef} className="passions-overlay" aria-hidden="true"><Passions /></div>
         <div ref={skillsRef} className="skills-columns" aria-hidden="true">
-          {skillColumns.map((column, side) => <div className={`skills-side skills-side-${side}`} key={side}><ul>{column.map((skill) => <li key={skill}>{skill}</li>)}</ul></div>)}
+          {skillColumns.map((column, side) => <div className={`skills-side skills-side-${side}`} key={side}><SkillGroups groups={column} /></div>)}
         </div>
         <div className="journey-white" aria-hidden="true" />
-        <div ref={roomRef} className="room-overlay" inert={enhanced && !documentOpen && !roomInteractive} aria-hidden={!roomActive && enhanced && !documentOpen}>
+        <div ref={roomRef} id="projects" className="room-overlay" inert={enhanced && !documentOpen && !roomInteractive} aria-hidden={!roomActive && enhanced && !documentOpen}>
           <Room active={roomActive || !enhanced || documentOpen} animated={enhanced && !documentOpen} />
         </div>
         {enhanced && !documentOpen && (
