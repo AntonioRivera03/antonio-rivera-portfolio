@@ -1,5 +1,9 @@
 export type LifeOrigin = { width: number; height: number; transform: string; fontSize: string; visibleWidth: number; visibleHeight: number };
 
+/** The life view's own address. The room opens it in place, then takes this URL once full screen. */
+export const LIFE_PATH = "/life";
+export const LIFE_TITLE = "antonio rivera — life outside of career";
+
 /** Preserve the visible z=0 plane without the camera's reflected depth axis. */
 export function flattenScreenProjection(matrix: ArrayLike<number>): number[] {
   const w = matrix[15];

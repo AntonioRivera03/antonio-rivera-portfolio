@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CHAPTERS, cruise, currentChapter, getTravelDuration, RETURN, REVEAL, TRAVEL } from "../lib/story-scroll.ts";
-import { getFooterReveal } from "../lib/footer-reveal.ts";
+import { CHAPTERS, cruise, currentChapter, getTravelDuration, RETURN, TRAVEL } from "../lib/story-scroll.ts";
 
 test("travel starts and ends at rest, never overshoots, and holds a steady cruise", () => {
   for (const ramp of [.05, .2, .5]) {
@@ -35,15 +34,11 @@ test("longer trips take longer, within sensible bounds, at a pace the scenes can
   assert.ok(full > 5000 && full < TRAVEL.maxMs);
 });
 
-test("back to the top is quick, and the footer eases open slowly", () => {
+test("back to the top is quick", () => {
   const viewport = 900;
   const page = viewport * 16;
   assert.ok(getTravelDuration(page, viewport, RETURN) < getTravelDuration(page, viewport, TRAVEL) / 2);
   assert.ok(getTravelDuration(page, viewport, RETURN) <= 2600);
-  // The footer is under a screen tall; its reveal still takes a few unhurried seconds.
-  const footer = viewport * .75;
-  assert.ok(getTravelDuration(footer, viewport, REVEAL) >= 2500);
-  assert.ok(getTravelDuration(footer, viewport, REVEAL) > getTravelDuration(footer, viewport, TRAVEL) * 2.5);
 });
 
 test("the current chapter is the last one whose stop has reached mid-screen", () => {
@@ -53,11 +48,4 @@ test("the current chapter is the last one whose stop has reached mid-screen", ()
   assert.equal(currentChapter(stops, 4600, 1000), "passions");
   assert.equal(currentChapter(stops, 20000, 1000), "skills");
   assert.deepEqual(CHAPTERS.map((chapter) => chapter.id), ["resume", "passions", "skills", "projects", "contact"]);
-});
-
-test("the footer drawing develops back to front and finishes exactly at the page end", () => {
-  assert.deepEqual(getFooterReveal(0), [0, 0, 0, 0]);
-  assert.deepEqual(getFooterReveal(1), [1, 1, 1, 1]);
-  const middle = getFooterReveal(.4);
-  for (let i = 1; i < middle.length; i++) assert.ok(middle[i] <= middle[i - 1], "farther layers lead");
 });

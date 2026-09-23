@@ -368,9 +368,9 @@ html:has(.portfolio[data-intro="running"]) { overscroll-behavior: none; }
 .slide-controls button::after { content: ""; display: block; width: 6px; height: 6px; border-radius: 50%; background: #a5a6a2; }
 .slide-controls button[aria-pressed="true"]::after { background: #333934; }
 .slide-controls button:focus-visible { outline: 1px solid #333; outline-offset: -5px; }
-.life-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; overflow: hidden; transform-origin: 0 0; color: #1b3043; background: #8cb5d1 url('/about/clouds.png') center / cover; }
+.life-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; overflow: hidden; transform-origin: 0 0; color: #1b3043; background: #e6edf2; }
 .life-view::backdrop { background: transparent; }
-.life-back { position: absolute; z-index: 2; top: 1.5rem; left: 1.5rem; padding: .75rem; border: 0; color: inherit; background: transparent; font: .875rem "Courier New", monospace; cursor: pointer; opacity: 0; transition: opacity .5s ease; }
+.life-back { position: absolute; z-index: 2; top: 1.5rem; left: 1.5rem; padding: .75rem; border: 0; color: inherit; background: transparent; font: .875rem "Courier New", monospace; text-decoration: none; cursor: pointer; opacity: 0; transition: opacity .5s ease; }
 .life-back:focus-visible { opacity: 1; outline: 2px solid currentColor; }
 .life-intro { position: absolute; top: 50%; left: 50%; width: 90%; transform: translate(-50%, -50%); text-align: center; }
 .life-intro h1 { margin: 0; font: 400 clamp(1.75rem, 5vw, 4.5rem)/1.3 "Helvetica Neue", Helvetica, sans-serif; letter-spacing: -.03em; }
@@ -378,6 +378,70 @@ html:has(.portfolio[data-intro="running"]) { overscroll-behavior: none; }
 .life-motto::before, .life-motto::after { background: #38576e66; }
 .life-view[data-settled="true"] .life-motto { opacity: 1; transform: translate(-50%, 0); }
 .life-view[data-settled="true"] .life-back { opacity: 1; }
+/* The /life page is the settled view on its own; the dialog's top layer already sits above the vignette. */
+body:has(.life-page)::after { display: none; }
+html:has(.life-page) { scrollbar-gutter: auto; }
+body:has(.life-page) { overflow: hidden; }
+
+/* Life: it opens on the sky; the arrow tilts down to an autumn valley, where the search's birds fly. */
+.life-journey { position: absolute; inset: 0; overflow: hidden; --tilt: 2.6s cubic-bezier(.64, 0, .2, 1); }
+.life-sky { position: absolute; inset: 0; background: #8cb5d1 url('/about/clouds.png') center / cover; -webkit-mask-image: linear-gradient(#000 84%, transparent); mask-image: linear-gradient(#000 84%, transparent); transition: transform var(--tilt); }
+/* Rides just behind the painted sky: its colors while the painting loads. */
+.life-haze { position: absolute; inset: 0; transform: translate3d(0, 100%, 0); background: linear-gradient(#e6edf2, #a3b1bd 6%, #bec7ce 25%, #b4b8bd 40%, #a88f6f 52%, #93844f 59%, #95979b 70%, #b4bec6 85%, #a0abb7); transition: transform var(--tilt); }
+.life-sky-scene { position: absolute; inset: 0; transition: transform var(--tilt), opacity 1s ease 1.2s; }
+.life-field-scene { position: absolute; inset: 0; }
+.life-journey[data-scene="field"] .life-sky, .life-journey[data-scene="field"] .life-sky-scene { transform: translate3d(0, -100%, 0); }
+.life-journey[data-scene="field"] .life-sky-scene { opacity: 0; transition: transform var(--tilt), opacity .8s ease; }
+.life-journey[data-scene="field"] .life-haze { transform: none; }
+.life-journey[data-instant], .life-journey[data-instant] * { transition: none !important; }
+
+.life-descend, .life-ascend { position: absolute; left: 50%; z-index: 3; border: 0; color: #1b3043; background: none; cursor: pointer; opacity: 0; translate: -50% 0; transition: opacity .4s ease; }
+.life-descend svg, .life-ascend svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.life-descend:focus-visible, .life-ascend:focus-visible { outline: 1px solid currentColor; outline-offset: 2px; border-radius: 999px; }
+.life-descend { bottom: clamp(1rem, 4.5vh, 2.75rem); padding: .6rem 1rem; visibility: hidden; }
+.life-descend svg { width: 20px; height: 38px; animation: life-bob 2.8s ease-in-out infinite; }
+.life-view[data-settled="true"] .life-descend { opacity: .7; visibility: visible; transition: opacity 1.2s ease 1.4s; }
+.life-view[data-settled="true"] .life-descend:is(:hover, :focus-visible) { opacity: 1; transition: opacity .3s ease; }
+.life-ascend { top: 1.2rem; padding: .7rem .9rem; }
+.life-ascend svg { width: 26px; height: 16px; }
+.life-journey[data-scene="field"] .life-ascend { opacity: .7; transition: opacity 1s ease 2.2s; }
+.life-journey[data-scene="field"] .life-ascend:is(:hover, :focus-visible) { opacity: 1; transition: opacity .3s ease; }
+@keyframes life-bob { 50% { transform: translateY(5px); } }
+
+/* The painting's layers start below the fold and rise at their own rates: the nearer, the faster. */
+.life-land { position: absolute; inset: 0; }
+.land-layer { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; pointer-events: none; user-select: none; transform: translate3d(0, calc(var(--depth) * 100%), 0); transition: transform var(--tilt); }
+.life-journey[data-scene="field"] .land-layer { transform: none; }
+/* The painted sky's top melts into the mist the photograph fades to: the descent passes through cloud,
+   and once the valley has settled the mist clears. */
+@property --mist { syntax: "<percentage>"; inherits: false; initial-value: 5%; }
+.land-sky { --depth: 1; --mist: 5%; -webkit-mask-image: linear-gradient(transparent, #000 var(--mist)); mask-image: linear-gradient(transparent, #000 var(--mist)); transition: transform var(--tilt), --mist .4s ease; }
+.life-journey[data-scene="field"] .land-sky { --mist: 0%; transition: transform var(--tilt), --mist 1.6s ease 2.4s; }
+.land-range { --depth: 1.1; }
+.land-hills { --depth: 1.26; }
+.land-near { --depth: 1.48; }
+
+/* Search: results fly in as birds and hover over the valley; a title surfaces over each bird near the pointer. */
+.bird-flock { position: absolute; inset: 0; opacity: 0; transition: opacity .5s ease; }
+.life-journey[data-scene="field"] .bird-flock { opacity: 1; transition: opacity 1s ease 1.6s; }
+.flock-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; filter: blur(.3px); }
+.flock-list { position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; pointer-events: none; }
+.flock-bird { --reveal: 0; position: absolute; top: 0; left: 0; display: block; pointer-events: auto; outline: none; -webkit-tap-highlight-color: transparent; }
+.flock-bird:not([data-placed]) { visibility: hidden; pointer-events: none; }
+a.flock-bird { cursor: pointer; }
+.flock-label { position: absolute; left: var(--body-x, 50%); bottom: calc(100% + 8px); width: max-content; max-width: min(220px, 44vw); padding: .42rem .85rem .46rem; border-radius: 1.1rem; background: rgb(14 14 16 / .6); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: 0 6px 18px rgb(0 0 0 / .16); color: #f7f2e8; font: 400 .82rem/1.3 "Helvetica Neue", Helvetica, Arial, sans-serif; letter-spacing: -.01em; text-align: center; text-wrap: balance; opacity: var(--reveal); translate: -50% calc((1 - var(--reveal)) * 4px); pointer-events: none; }
+.flock-bird:focus-visible .flock-label { box-shadow: 0 0 0 1.5px rgb(247 242 232 / .7), 0 6px 18px rgb(0 0 0 / .16); }
+
+/* The soft black pill. */
+.bird-search { position: absolute; left: 50%; bottom: max(1.5rem, env(safe-area-inset-bottom)); z-index: 3; width: min(440px, calc(100vw - 2.5rem)); translate: -50% 0; opacity: 0; transition: opacity .4s ease; }
+.life-journey[data-scene="field"] .bird-search { opacity: 1; transition: opacity 1s ease 2s; }
+.bird-search input { width: 100%; height: 48px; margin: 0; padding: 0 3.4rem 0 1.4rem; border: 1px solid rgb(255 255 255 / .08); border-radius: 999px; background: rgb(14 14 16 / .56); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgb(0 0 0 / .16); color: #f7f2e8; font: 400 1rem/1 "Helvetica Neue", Helvetica, Arial, sans-serif; letter-spacing: -.01em; outline: none; appearance: none; transition: background .3s ease, border-color .3s ease; }
+.bird-search input::placeholder { color: rgb(247 242 232 / .5); }
+.bird-search input:focus { background: rgb(14 14 16 / .68); border-color: rgb(255 255 255 / .2); }
+.bird-search input::-webkit-search-cancel-button { display: none; }
+.bird-count, .bird-key { position: absolute; top: 50%; right: 1.3rem; translate: 0 -50%; color: rgb(247 242 232 / .6); font: .78rem/1 "Courier New", Courier, monospace; pointer-events: none; }
+.bird-key { padding: .2rem .42rem; border: 1px solid rgb(247 242 232 / .28); border-radius: .35rem; }
+.bird-search:focus-within .bird-key { opacity: 0; }
 
 /* These matrices come from the same camera as the furniture, not CSS perspective. */
 @media (min-width: 701px) {
@@ -442,6 +506,8 @@ html:has(.portfolio[data-intro="running"]) { overscroll-behavior: none; }
 @media (prefers-reduced-motion: reduce) {
   .project-pupils { transition: none; }
   .life-motto { transition: none; }
+  .life-journey, .life-journey * { transition-duration: .01s !important; transition-delay: 0s !important; }
+  .life-descend svg { animation: none; }
 }
 @media print {
   .skills-static, .crt-story[data-enhanced="true"] .skills-static { position: static; width: auto; height: auto; clip-path: none; overflow: visible; padding: 2rem 0; }
@@ -470,7 +536,7 @@ html:has(.portfolio[data-intro="running"]) .story-nav { opacity: 0; visibility: 
 .project-caption { position: absolute; left: 8%; right: 8%; bottom: 7%; font: 5.4cqw/1.3 "Courier New", Courier, monospace; text-align: center; opacity: 0; transform: translateY(6px); transition: opacity .45s ease, transform .45s ease; }
 .project-pane:hover .project-caption, .project-pane:focus-visible .project-caption { opacity: .78; transform: none; }
 
-/* Footer: plain text, then a ballpoint landscape that develops as the page ends. */
+/* Footer: plain text above a ballpoint landscape. */
 .site-footer { position: relative; background: var(--background); color: var(--foreground); }
 .footer-text { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 1.5rem 3rem; width: min(100% - 3rem, 1120px); margin: 0 auto; padding-top: clamp(5rem, 14vh, 9rem); }
 .footer-name { margin: 0; font-size: clamp(1.6rem, 2.4vw, 2.2rem); line-height: 1.1; letter-spacing: -.045em; }
@@ -481,18 +547,15 @@ html:has(.portfolio[data-intro="running"]) .story-nav { opacity: 0; visibility: 
 .footer-top { grid-column: 1 / -1; justify-self: end; padding: 0; border: 0; background: none; color: var(--muted); font: .78rem "Courier New", Courier, monospace; cursor: pointer; }
 .footer-top:hover { color: var(--foreground); }
 .footer-drawing { position: relative; width: 100%; height: clamp(250px, 40vw, 760px); margin-top: clamp(-7rem, -6vw, -1.5rem); pointer-events: none; }
-.footer-layer { position: absolute; inset: 0; background: var(--ink); -webkit-mask: var(--layer) left bottom / cover no-repeat; mask: var(--layer) left bottom / cover no-repeat; opacity: calc(var(--p, 1) * var(--alpha, .9)); transform: translate3d(0, calc((1 - var(--p, 1)) * var(--shift, 0px)), 0); will-change: opacity, transform; }
-.footer-sky { --layer: url("/footer/sky.svg"); --shift: -36px; --alpha: .75; }
-.footer-far { --layer: url("/footer/far.svg"); --shift: -24px; --alpha: .8; }
-.footer-mid { --layer: url("/footer/mid.svg"); --shift: -12px; }
+.footer-layer { position: absolute; inset: 0; background: var(--ink); -webkit-mask: var(--layer) left bottom / cover no-repeat; mask: var(--layer) left bottom / cover no-repeat; opacity: var(--alpha, .9); }
+.footer-sky { --layer: url("/footer/sky.svg"); --alpha: .75; }
+.footer-far { --layer: url("/footer/far.svg"); --alpha: .8; }
+.footer-mid { --layer: url("/footer/mid.svg"); }
 .footer-near { --layer: url("/footer/near.svg"); }
 @media (max-width: 700px) {
   .footer-text { grid-template-columns: 1fr; padding-top: 4.5rem; }
   .footer-top { justify-self: start; }
   .footer-drawing { margin-top: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .footer-layer { transform: none; }
 }
 @media print {
   .story-nav, .footer-drawing, .footer-top { display: none; }

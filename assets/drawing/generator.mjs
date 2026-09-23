@@ -74,8 +74,12 @@ const slopeOf = (fn, x, h = 9) => (fn(x + h) - fn(x - h)) / (2 * h);
 
 // Back to front. `layer` decides which SVG the hill's strokes land in.
 const hills = [
+  // Flat-topped mesas along the horizon, as along the Balcones Escarpment.
+  { id: "far0", layer: "far", top: ridge([[-200, 390], [120, 388], [205, 383], [330, 382], [380, 387], [600, 389], [676, 381], [856, 380], [906, 387], [1150, 387], [1206, 379], [1386, 378], [1440, 385], [1800, 388]], 1.1, 10, 10) },
   { id: "far1", layer: "far", top: ridge([[-200, 402], [80, 397], [260, 400], [430, 392], [610, 398], [770, 389], [930, 395], [1090, 386], [1250, 393], [1420, 388], [1580, 396], [1800, 394]], 2.2, 14, 11) },
+  { id: "far1b", layer: "far", top: ridge([[-200, 414], [100, 410], [280, 404], [400, 409], [540, 401], [700, 407], [860, 400], [1020, 405], [1180, 398], [1340, 404], [1500, 399], [1800, 405]], 2.4, 15, 18) },
   { id: "far2", layer: "far", top: ridge([[-200, 436], [120, 424], [300, 413], [470, 419], [630, 408], [790, 416], [950, 404], [1110, 412], [1270, 418], [1430, 409], [1800, 420]], 2.6, 16, 12) },
+  { id: "far2b", layer: "far", top: ridge([[-200, 448], [140, 438], [330, 427], [500, 433], [660, 421], [830, 430], [980, 419], [1150, 428], [1330, 432], [1500, 424], [1800, 436]], 2.8, 17, 19) },
   { id: "far3", layer: "far", top: ridge([[-200, 468], [180, 452], [390, 441], [560, 431], [720, 437], [870, 426], [1000, 437], [1120, 446], [1260, 450], [1420, 446], [1800, 458]], 3, 18, 13) },
   { id: "hillB", layer: "mid", top: ridge([[640, 600], [780, 540], [900, 494], [1020, 456], [1140, 428], [1250, 414], [1340, 417], [1440, 428], [1540, 437], [1700, 444], [1800, 446]], 2.4, 22, 14) },
   { id: "hillA", layer: "mid", top: ridge([[260, 600], [380, 530], [480, 478], [580, 452], [660, 444], [740, 450], [830, 470], [930, 500], [1030, 534], [1140, 600]], 2.2, 20, 15) },
@@ -147,7 +151,6 @@ const oak = crown("oak", [
   [-150, 18, 27], [-94, 16, 33], [-30, 20, 34], [36, 18, 35], [98, 18, 32], [152, 20, 26],
   [-176, 34, 17], [178, 36, 16], [-60, 36, 22], [70, 38, 22],
 ].map(([dx, dy, r]) => ({ x: oakCenter[0] + dx, y: oakCenter[1] + dy, r })), 77);
-const oakClumps = oak.clumps;
 const oakLimbs = [
   { pts: [[344, 456], [342, 436], [339, 418], [334, 404]], w: [26, 20, 18, 16] },
   { pts: [[336, 406], [306, 394], [268, 382], [228, 378], [198, 383]], w: [13, 10, 8, 6, 4] },
@@ -315,6 +318,12 @@ function drawSky() {
       layer.stroke(pts, rand() < 0.2 ? 0.7 : 0.5, o, Math.floor(rand() * 3));
     }
   }
+  // A small, distant flock.
+  for (const [bx, by, size] of [[1012, 238, 4.2], [1026, 231, 3.4], [1041, 241, 3.8], [1050, 229, 2.8], [1066, 236, 3.1]]) {
+    const lift = size * (0.3 + rand() * 0.25);
+    layer.stroke([[bx - size, by - lift * 0.4], [bx - size * 0.45, by - lift], [bx, by]], 0.55, 0.62, 0);
+    layer.stroke([[bx, by], [bx + size * 0.45, by - lift], [bx + size, by - lift * 0.4]], 0.55, 0.62, 0);
+  }
   // A few soft flocks of cirrus, curled slightly, higher up.
   for (const [cx, cy, spread] of [[1190, 266, 160], [440, 290, 130]]) {
     for (let i = 0; i < 26; i++) {
@@ -328,57 +337,232 @@ function drawSky() {
 }
 
 // ---------- FAR RIDGES ----------
+/** A tiny distant tree: a dark dab of stacked scribbles, lighter on top. */
+function farTree(layer, rand, x, y, w, opacity) {
+  const rows = w > 2.6 ? 3 : 2, v = Math.floor(rand() * 3);
+  for (let k = 0; k < rows; k++) {
+    const t = (k + 0.5) / rows, half = w / 2 * Math.sqrt(1 - (1 - 2 * t) ** 2 * 0.6) * (0.8 + rand() * 0.35);
+    const yy = y - w * 0.55 * (1 - t);
+    layer.stroke([[x - half, yy + (rand() - 0.5) * 0.3], [x + half * (0.6 + rand() * 0.4), yy + (rand() - 0.5) * 0.3]], 0.7 + 0.15 * (w > 2.6), opacity * (0.75 + 0.25 * t), v);
+  }
+}
+
 function drawFar() {
   const layer = new Layer("far"), rand = mulberry32(202);
-  hills.filter((h) => h.layer === "far").forEach((hill, index) => {
-    const nearness = index / 2; // 0 farthest .. 1
+  const far = hills.filter((h) => h.layer === "far");
+  const visibleDepth = (hill, x) => hill.occ(x) - hill.top(x);
+  far.forEach((hill, index) => {
+    const nearness = index / (far.length - 1); // 0 on the horizon .. 1 nearest
     const inside = (x, y) => y > hill.top(x) + 0.6 && y < hill.occ(x) - 1 && !inTrees(x, y, 2.5);
-    hatch(layer, rand, [-20, 380, W + 20, 520], 6.5 - nearness, (x, y) => {
-      if (!inside(x, y)) return null;
+    const fields = index >= far.length - 2 ? layFields(hill, rand, index) : [];
+    const ranch = index === far.length - 1 ? ranchSite(hill, fields) : null;
+    // Keep hatching off the fields and out of the ranch so both stay legible.
+    const inField = (x, y) => fields.some((f) => x > f.x0 && x < f.x1 && y > hill.top(x) + f.d0 && y < hill.top(x) + f.d1)
+      || Boolean(ranch && x > ranch.x - 30 && x < ranch.x + 32 && y > ranch.y - 28 && y < ranch.y + 4);
+
+    // Contour hatching, heavier on the shaded right-facing slopes, fading into the valley haze.
+    hatch(layer, rand, [-20, 370, W + 20, 520], 6 - 1.6 * nearness, (x, y) => {
+      if (!inside(x, y) || inField(x, y)) return null;
       const shade = hillShade(hill, x);
-      const haze = smoothstep(0, 13, hill.occ(x) - y);
-      const crest = Math.exp(-(y - hill.top(x)) / 5) * (0.15 + 0.25 * nearness);
-      const tone = (0.36 + 0.42 * shade + 0.24 * nearness + crest) * haze * (0.65 + 0.7 * fbm(x / 60, y / 20, 30 + index));
-      return tone < 0.04 ? null : {
-        tone, per: 1.5, inside, length: 9 + 10 * nearness,
-        angle: (ax, ay) => contourAngle(hill, ax, ay, 26, 40 + index),
-        width: 0.5, opacity: 0.28 + 0.2 * nearness + 0.14 * shade,
-        trace: { step: 2.6, wobble: 0.1, jitter: 0.3, bend: 0.03 },
+      const haze = smoothstep(0, 10 + 6 * nearness, hill.occ(x) - y);
+      const crest = Math.exp(-(y - hill.top(x)) / 5) * (0.2 + 0.3 * nearness);
+      const tone = (0.36 + 0.5 * shade + 0.24 * nearness + crest) * haze * (0.6 + 0.8 * fbm(x / 55, y / 18, 30 + index));
+      return tone < 0.05 ? null : {
+        tone, per: 1.6 + 0.6 * nearness, inside, length: 7 + 11 * nearness,
+        angle: (ax, ay) => contourAngle(hill, ax, ay, 22, 40 + index),
+        width: 0.45 + 0.1 * nearness, opacity: 0.24 + 0.24 * nearness + 0.14 * shade,
+        trace: { step: 2.4, wobble: 0.1, jitter: 0.3, bend: 0.03 },
       };
     });
-    // Tree-lined crest: broken silhouette line and tiny juniper dots along it.
+    // Shaded flanks get a second, steeper pass so each ridge reads as a form.
+    if (index > 0) {
+      hatch(layer, rand, [-20, 370, W + 20, 520], 5.5, (x, y) => {
+        if (!inside(x, y) || inField(x, y)) return null;
+        const tone = smoothstep(0.5, 1, hillShade(hill, x)) * smoothstep(0, 9, hill.occ(x) - y) * (0.4 + 0.6 * fbm(x / 40, y / 20, 45 + index));
+        return tone < 0.12 ? null : {
+          tone, per: 0.8, inside, length: 5 + 4 * nearness,
+          angle: (ax, ay) => contourAngle(hill, ax, ay, 22, 40 + index) + 0.8,
+          width: 0.45, opacity: 0.2 + 0.2 * nearness, trace: { step: 2, wobble: 0.06, jitter: 0.25 },
+        };
+      });
+    }
+
+    // A darker wooded band just under each crest separates one ridge from the next.
+    if (index > 0) {
+      for (let x = -10; x <= W + 10; x += 2.2) {
+        const top = hill.top(x);
+        const band = 0.35 + 0.65 * smoothstep(0.35, 0.6, fbm(x / 48, index, 63));
+        if (rand() > band * (0.55 + 0.45 * hillShade(hill, x))) continue;
+        const y = top + 1 + rand() * (2.5 + 2.5 * nearness);
+        if (!inside(x, y) || inField(x, y)) continue;
+        const pts = trace(rand, x, y, 3 + rand() * 4, (ax, ay) => contourAngle(hill, ax, ay, 22, 40 + index), inside, { step: 1.6, wobble: 0.1, jitter: 0.25 });
+        layer.stroke(pts, 0.7, 0.3 + 0.28 * nearness, Math.floor(rand() * 3));
+      }
+    }
+
+    // Crest line, broken where groves or haze swallow it.
     let run = [];
-    const flush = () => { if (run.length > 2) layer.stroke(run, 0.55, 0.38 + 0.22 * nearness, 0); run = []; };
+    const flush = () => { if (run.length > 2) layer.stroke(run, 0.5 + 0.12 * nearness, 0.36 + 0.34 * nearness, 0); run = []; };
     for (let x = -10; x <= W + 10; x += 3) {
       const y = hill.top(x);
-      const visible = y < hill.occ(x) - 1.5 && y < skyFloor(x) + 0.5 && !inTrees(x, y, 2) && fbm(x / 26, index, 60) > 0.3;
+      const visible = y < hill.occ(x) - 1.5 && y < skyFloor(x) + 0.5 && !inTrees(x, y, 2) && fbm(x / 26, index, 60) > 0.27;
       if (visible) run.push([x, y + (rand() - 0.5) * 0.4]); else flush();
     }
     flush();
-    for (let x = -10; x <= W + 10; x += 1.8 + rand() * 1.8) {
-      const grove = smoothstep(0.42, 0.66, fbm(x / 38, index + 4, 61));
-      if (rand() > grove * 0.95) continue;
-      const y = hill.top(x);
-      if (y > hill.occ(x) - 3 || y > skyFloor(x) + 1 || inTrees(x, y, 2)) continue;
-      const w = (1.8 + rand() * 2.2) * (0.7 + 0.6 * nearness), h = w * (0.3 + rand() * 0.35);
-      const v = Math.floor(rand() * 3);
-      layer.stroke([[x - w / 2, y + 0.3], [x - w * 0.3, y - h * 0.85], [x + w * 0.05, y - h], [x + w / 2, y + 0.3]], 0.5 + 0.2 * nearness, 0.32 + 0.24 * nearness, v);
-      layer.stroke([[x - w / 2, y + 1.2 + rand()], [x + w / 2, y + 1.3 + rand()]], 0.7 + 0.4 * nearness, 0.26 + 0.2 * nearness, v);
+
+    // Tree-lined crests: tight groves of tiny rounded crowns.
+    if (index > 0) {
+      for (let x = -10; x <= W + 10; x += 1.5 + rand() * 1.6) {
+        const grove = smoothstep(0.36, 0.62, fbm(x / 34, index + 4, 61));
+        if (rand() > grove * 0.95) continue;
+        const y = hill.top(x);
+        if (y > hill.occ(x) - 3 || y > skyFloor(x) + 1 || inTrees(x, y, 2)) continue;
+        farTree(layer, rand, x, y + 0.4, (1.6 + rand() * 2) * (0.6 + 0.7 * nearness), 0.28 + 0.3 * nearness);
+      }
     }
+
     // Wooded flanks below the crest read as soft darker mottling.
     if (index > 0) {
-      for (let y = 395; y < 480; y += 3.4) {
-        for (let x = -10; x < W + 10; x += 3.4) {
-          const px = x + rand() * 3.4, py = y + rand() * 3.4;
-          if (!inside(px, py) || hill.occ(px) - py < 5) continue;
-          const wood = smoothstep(0.55, 0.75, fbm(px / 42, py / 12, 62 + index)) * (0.5 + 0.5 * hillShade(hill, px));
-          if (rand() > wood * 0.7) continue;
-          layer.stroke([[px, py], [px + 1.6 + rand() * 1.6, py + (rand() - 0.5) * 0.4]], 0.9 + 0.4 * nearness, 0.32 + 0.2 * nearness, Math.floor(rand() * 3));
+      for (let y = 376; y < 492; y += 3.2) {
+        for (let x = -10; x < W + 10; x += 3.2) {
+          const px = x + rand() * 3.2, py = y + rand() * 3.2;
+          if (!inside(px, py) || inField(px, py) || hill.occ(px) - py < 4) continue;
+          const wood = smoothstep(0.52, 0.74, fbm(px / 40, py / 12, 62 + index)) * (0.5 + 0.5 * hillShade(hill, px));
+          if (rand() > wood * 0.75) continue;
+          layer.stroke([[px, py], [px + 1.4 + rand() * 1.6, py + (rand() - 0.5) * 0.4]], 0.8 + 0.4 * nearness, 0.26 + 0.24 * nearness, Math.floor(rand() * 3));
         }
       }
     }
+
+    // Creeks: tree lines meandering down the draws toward the valley.
+    if (index >= 2) {
+      const draws = [];
+      for (let x = 40; x < W - 40; x += 11) if (visibleDepth(hill, x) > 18 && !inTrees(x, hill.top(x), 6)) draws.push(x);
+      for (let k = 0; k < Math.min(2, draws.length); k++) {
+        let x = draws[Math.floor(rand() * draws.length)], y = hill.top(x) + 2;
+        const heading = (rand() < 0.5 ? -1 : 1) * (1.4 + rand() * 0.8);
+        for (let step = 0; step < 90; step++) {
+          x += heading * (0.8 + 0.5 * Math.sin(step * 0.3 + k * 2)); y += 0.55 + 0.35 * Math.cos(step * 0.23 + k);
+          if (!inside(x, y) || inField(x, y) || hill.occ(x) - y < 2) break;
+          if (step % 2 === 0) farTree(layer, rand, x + (rand() - 0.5), y + (rand() - 0.5) * 0.6, 1.8 + rand() * 1.4 * nearness, 0.36 + 0.24 * nearness);
+        }
+      }
+    }
+
+    drawFields(layer, rand, hill, fields, inside, nearness);
+    if (ranch) drawRanch(layer, rand, hill, inside, ranch);
   });
   return layer;
+}
+
+/** Pasture and plowed ground on the nearer distant slopes, where they show. */
+function layFields(hill, rand, index) {
+  const fields = [];
+  for (let x = 480; x < W - 30; x += 24) {
+    const depth = hill.occ(x) - hill.top(x);
+    if (depth < 16 || inTrees(x, hill.top(x) + 6, 8)) continue;
+    const width = 34 + rand() * 46;
+    if (fields.some((f) => x < f.x1 + 10)) continue;
+    const d0 = 4 + rand() * 4, d1 = Math.min(depth - 3, d0 + 9 + rand() * 12);
+    const ok = [x, x + width / 2, x + width].every((px) => hill.occ(px) - hill.top(px) > d1 + 2);
+    if (!ok || d1 - d0 < 6 || rand() < 0.25) continue;
+    fields.push({ x0: x, x1: x + width, d0, d1, kind: ["rows", "stipple", "rows", "plain"][Math.floor(rand() * 4)], tilt: (rand() - 0.5) * 0.25, seed: index * 10 + fields.length });
+  }
+  return fields;
+}
+
+function drawFields(layer, rand, hill, fields, inside, nearness) {
+  const opacity = 0.26 + 0.2 * nearness;
+  for (const f of fields) {
+    const at = (x, d) => [x, hill.top(x) + d + (x - f.x0) * f.tilt * 0.1];
+    if (f.kind === "rows") {
+      for (let d = f.d0 + 1.2; d < f.d1 - 0.6; d += 1.9) {
+        const pts = [];
+        for (let x = f.x0 + 1; x <= f.x1 - 1; x += 3) { const [px, py] = at(x, d); if (inside(px, py)) pts.push([px, py + (rand() - 0.5) * 0.25]); }
+        if (pts.length > 1) layer.stroke(pts, 0.4, opacity * 0.9, Math.floor(rand() * 3));
+      }
+    } else if (f.kind === "stipple") {
+      const count = (f.x1 - f.x0) * (f.d1 - f.d0) * 0.09;
+      for (let i = 0; i < count; i++) {
+        const [px, py] = at(lerp(f.x0 + 1, f.x1 - 1, rand()), lerp(f.d0 + 0.8, f.d1 - 0.8, rand()));
+        if (inside(px, py)) layer.dot(px, py, 0.6, opacity);
+      }
+    }
+    // A hedgerow along the lower edge.
+    const hedge = (pts) => pts.forEach(([px, py]) => { if (inside(px, py) && rand() < 0.7) farTree(layer, rand, px, py, 1.5 + rand() * 1.3, opacity + 0.1); });
+    hedge(Array.from({ length: Math.ceil((f.x1 - f.x0) / 2.6) }, (_, i) => at(f.x0 + i * 2.6 + (rand() - 0.5), f.d1)));
+  }
+}
+
+/** The deepest open stretch of the nearest distant ridge, clear of fields and trees. */
+function ranchSite(hill, fields) {
+  let best = null;
+  for (let x = 640; x < W - 60; x += 4) {
+    const depth = hill.occ(x) - hill.top(x);
+    const clear = !fields.some((f) => x > f.x0 - 30 && x < f.x1 + 30) && !inTrees(x, hill.top(x) + 10, 30);
+    if (clear && (!best || depth > best.depth)) best = { x, depth };
+  }
+  if (!best || best.depth < 16) return null;
+  return { x: best.x, y: hill.top(best.x) + Math.min(best.depth - 6, 12 + best.depth * 0.3) };
+}
+
+/** A small ranch: farmhouse, barn, an Aermotor windmill, a fence and a two-track road. */
+function drawRanch(layer, rand, hill, inside, site) {
+  const hx = site.x, hy = site.y;
+  const k = 1.4; // the buildings read at footer size without outgrowing the distance
+  const at = ([dx, dy]) => [hx + dx * k, hy + dy * k];
+  // Buildings may stand against the farther ridge; only nearer hills and trees hide them.
+  const shown = (x, y) => y < hill.occ(x) - 1 && !inTrees(x, y, 2);
+  const ink = 0.62, line = (pts, w = 0.5, o = ink) => { const q = pts.map(at); if (q.every(([x, y]) => shown(x, y))) layer.stroke(q, w, o, 0); };
+  // Farmhouse: lit gable end on the left, shaded side and a porch line.
+  line([[-5, 0], [-5, -3.6], [-2.5, -6], [0, -3.6], [0, 0]]);
+  line([[-2.5, -6], [5.5, -6.2], [7.5, -3.8], [0, -3.6]]);
+  line([[0, 0], [7.5, 0], [7.5, -3.8]]);
+  for (let t = 1; t < 7; t += 1.1) line([[t, -3.4], [t + 0.2, -0.3]], 0.45, 0.5);
+  line([[-3.8, -1.2], [-3.8, -2.4]], 0.7, 0.7);
+  // Barn with a gambrel roof, a little downhill.
+  const b = (dx, dy) => [15 + dx, 2 + dy];
+  line([b(0, 0), b(0, -4), b(1.2, -6.4), b(4, -7.6), b(6.8, -6.4), b(8, -4), b(8, 0), b(0, 0)]);
+  line([b(2.6, 0), b(2.6, -2.8), b(5.4, -2.8), b(5.4, 0)], 0.45, 0.55);
+  for (let t = 5.8; t < 8; t += 0.8) line([b(t, -3.8), b(t, -0.3)], 0.45, 0.5);
+  // Windmill: a tapering lattice tower, a sixteen-blade wheel and a tail vane.
+  const w = (dx, dy) => [-13 + dx, 0.5 + dy], height = 17;
+  line([w(-2.2, 0), w(-0.5, -height)], 0.45); line([w(2.2, 0), w(0.5, -height)], 0.45);
+  for (let j = 1; j < 4; j++) {
+    const y = -height * j / 4, half = lerp(2.2, 0.5, j / 4), prev = -height * (j - 1) / 4, prevHalf = lerp(2.2, 0.5, (j - 1) / 4);
+    line([w(-half, y), w(half, y)], 0.35, 0.5);
+    line([w(-prevHalf, prev), w(half, y)], 0.3, 0.4);
+  }
+  for (let j = 0; j < 16; j++) {
+    const a = (j / 16) * Math.PI * 2;
+    line([w(Math.cos(a) * 0.8, -height + Math.sin(a) * 0.8), w(Math.cos(a) * 3.3, -height + Math.sin(a) * 3.3)], 0.3, 0.55);
+  }
+  line([w(0, -height), w(5.5, -height + 0.3), w(6.5, -height - 1.4), w(6.8, -height + 1.6), w(5.5, -height + 0.3)], 0.4, 0.6);
+  line([w(2.5, 0), w(5.5, 0)], 0.9, 0.55); // stock tank
+  // Shade trees by the house.
+  for (const [dx, dy, size] of [[-7.5, 0.5, 3.4], [10.5, 0.8, 2.6], [-20, 1.5, 3]]) farTree(layer, rand, hx + dx * k, hy + dy * k, size * 1.2, 0.6);
+  // Fence along the pasture, posts every few paces.
+  const fence = [];
+  for (let x = hx - 70; x <= hx + 80; x += 1.5) {
+    const y = hill.top(x) + (hy - hill.top(hx)) + 6 + Math.sin(x / 40) * 1.2;
+    if (inside(x, y) && inside(x, y - 2)) fence.push([x, y]);
+    else if (fence.length) { if (fence.length > 3) layer.stroke(fence.splice(0), 0.35, 0.45, 1); else fence.length = 0; }
+  }
+  if (fence.length > 3) layer.stroke(fence, 0.35, 0.45, 1);
+  for (let x = hx - 70; x <= hx + 80; x += 4.5) {
+    const y = hill.top(x) + (hy - hill.top(hx)) + 6 + Math.sin(x / 40) * 1.2;
+    if (inside(x, y) && inside(x, y - 2)) layer.stroke([[x, y + 0.6], [x, y - 1.6]], 0.4, 0.5, 2);
+  }
+  // A two-track road winding down from the house.
+  for (const offset of [-0.9, 0.9]) {
+    const road = [];
+    for (let t = 0; t < 1; t += 0.04) {
+      const x = hx + 4 + t * 55 + Math.sin(t * 5) * 6 + offset * 0.3, y = hy + 1 + t * 26 + offset;
+      if (!inside(x, y)) break;
+      road.push([x, y]);
+    }
+    if (road.length > 2) layer.stroke(road, 0.35, 0.4, 2);
+  }
 }
 
 // ---------- MID HILLS ----------

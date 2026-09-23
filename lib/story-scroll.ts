@@ -30,8 +30,6 @@ export interface Pace { viewportsPerSecond: number; rampMs: number; minMs: numbe
 export const TRAVEL: Pace = { viewportsPerSecond: 2.6, rampMs: 650, minMs: 700, maxMs: 9000 };
 /** Back to the top is a quick return; the scenes rewind behind it. */
 export const RETURN: Pace = { viewportsPerSecond: 9, rampMs: 450, minMs: 600, maxMs: 2600 };
-/** The footer eases open slowly to reveal the drawing. */
-export const REVEAL: Pace = { viewportsPerSecond: 0.32, rampMs: 1100, minMs: 2200, maxMs: 4200 };
 
 export function getTravelDuration(distance: number, viewport: number, pace: Pace = TRAVEL) {
   const cruise = Math.abs(distance) / Math.max(1, viewport) / pace.viewportsPerSecond * 1000;
@@ -55,15 +53,8 @@ export function cruise(t: number, ramp: number): number {
 
 let active: (() => void) | null = null;
 
-export const isTraveling = () => active !== null;
-
-const SCROLL_KEYS = ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "];
-
-/**
- * Scroll to `target` at the given pace. By default any reader input cancels the
- * trip; with `hold`, reader scrolling is blocked until it lands instead.
- */
-export function travelTo(target: number, { pace = TRAVEL, hold = false, onDone }: { pace?: Pace; hold?: boolean; onDone?: () => void } = {}) {
+/** Scroll to `target` at the given pace; any reader input cancels the trip. */
+export function travelTo(target: number, { pace = TRAVEL, onDone }: { pace?: Pace; onDone?: () => void } = {}) {
   active?.();
   const start = scrollY;
   const max = document.documentElement.scrollHeight - innerHeight;
@@ -81,22 +72,14 @@ export function travelTo(target: number, { pace = TRAVEL, hold = false, onDone }
   const html = document.documentElement;
   const previousBehavior = html.style.scrollBehavior;
   html.style.scrollBehavior = "auto";
-  const block = (event: Event) => event.preventDefault();
-  const blockKeys = (event: KeyboardEvent) => { if (SCROLL_KEYS.includes(event.key)) event.preventDefault(); };
   const cancelOnKey = (event: KeyboardEvent) => { if (!["Shift", "Control", "Alt", "Meta", "Tab"].includes(event.key)) stop(); };
   const stop = () => {
     cancelAnimationFrame(frame);
     html.style.scrollBehavior = previousBehavior;
-    if (hold) {
-      removeEventListener("wheel", block);
-      removeEventListener("touchmove", block);
-      removeEventListener("keydown", blockKeys);
-    } else {
-      removeEventListener("wheel", stop);
-      removeEventListener("touchstart", stop);
-      removeEventListener("keydown", cancelOnKey);
-      removeEventListener("pointerdown", stop);
-    }
+    removeEventListener("wheel", stop);
+    removeEventListener("touchstart", stop);
+    removeEventListener("keydown", cancelOnKey);
+    removeEventListener("pointerdown", stop);
     if (active === stop) active = null;
   };
   const step = (now: number) => {
@@ -106,16 +89,10 @@ export function travelTo(target: number, { pace = TRAVEL, hold = false, onDone }
     if (t < 1) frame = requestAnimationFrame(step);
     else { stop(); onDone?.(); }
   };
-  if (hold) {
-    addEventListener("wheel", block, { passive: false });
-    addEventListener("touchmove", block, { passive: false });
-    addEventListener("keydown", blockKeys);
-  } else {
-    addEventListener("wheel", stop, { passive: true });
-    addEventListener("touchstart", stop, { passive: true });
-    addEventListener("keydown", cancelOnKey);
-    addEventListener("pointerdown", stop);
-  }
+  addEventListener("wheel", stop, { passive: true });
+  addEventListener("touchstart", stop, { passive: true });
+  addEventListener("keydown", cancelOnKey);
+  addEventListener("pointerdown", stop);
   frame = requestAnimationFrame(step);
   active = stop;
   return stop;

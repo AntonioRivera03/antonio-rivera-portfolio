@@ -70,6 +70,7 @@ node --experimental-strip-types tests/crt-document.test.mjs
 node --experimental-strip-types tests/crt-companion.test.mjs
 node --experimental-strip-types tests/portfolio-journey.test.mjs
 node --experimental-strip-types tests/room-layout.test.mjs
+node --experimental-strip-types tests/life-flock.test.mjs
 ```
 
 ## Skills and room
@@ -82,10 +83,20 @@ The furniture is a Blender model in `assets/blender/room/room.blend`. `generator
 
 Room furniture faces inward at 45°. A shared 12° camera projects the floating panels at 30° above their furniture; narrow layouts use readable document flow. The Blender `Working` animation loops while the room is visible and pauses for reduced motion, hidden tabs, and the cloud view. The cloud panel centers for 1.1 seconds, expands for 2.3 seconds, then fades in the subtitle beneath its persistent title.
 
+Once full screen, the view takes the `/life` address (`history.pushState`) without leaving the page, so the room stays mounted behind it. Browser back, Escape, and the view's back button all return through history to the same scroll position. `app/life/page.tsx` renders the same view for direct visits and refreshes; both use `components/life-journey.tsx`. The path is `LIFE_PATH` in `lib/room/life.ts`.
+
+## Life: the valley and the flock
+
+The life page opens on the sky. The arrow at the bottom tilts the view down (`/life#valley`) to an autumn valley after the Hudson River School: a still lake under turning trees, a wooded point, meadows and foothills across the water, and rolling blue ranges beyond. Its four layers rise at different rates on the way down. The up arrow returns to the sky; a link or refresh at `/life#valley` lands there directly.
+
+The painting is rendered, not drawn: `assets/painting/valley.glsl` raymarches the scene (terrain, trees, reeds, volumetric cumulus, the lake's reflections, aerial haze), and `assets/painting/brush.glsl` brushes each layer with an anisotropic Kuwahara filter so the render reads as paint, with broader strokes in the distance. Each layer renders alone, seeing only its own geometry and what lies behind it, so the back layers are whole when the front ones rise past. `npm run life:valley` runs both in headless Chrome (on the GPU when it can reach one) and writes 2560×1440 WebP layers to `public/life/` (about 800 KB together); `-- --preview [width]` renders the whole scene to `assets/painting/generated/` instead.
+
+`components/bird-search.tsx` is the search: a soft black pill at the bottom. Each result flies in as a bird and hovers in the open sky; moving the pointer over the flock surfaces the titles of the birds nearby. The pieces live in `lib/life/writing.ts` (title, kind, subjects, and an optional link and species); every word of a search must match, and title matches rank first. `lib/life/birds.ts` draws fifteen species in profile with 3D wings that beat, fold and glide; `lib/life/flock.ts` places them so each bird keeps room for its title above it, so titles shown together never overlap, and birds already hovering keep their places as the search changes. What doesn't fit is left out, and the pill says how many of how many are showing. `/` opens the search; arrow keys move between birds; Escape returns to the pill, then clears it. On touch, the first tap shows a title and the second opens it. With reduced motion, birds appear in place with their wings held out. The entries are examples for now, without links.
+
 ## Navigation, footer, and résumé PDF
 
 `components/story-nav.tsx` links to each chapter. Chapters inside the scroll story report their settled positions through `registerChapterResolver` in `lib/story-scroll.ts`; the nav travels there at a steady pace (about 2.6 screens a second, with eased ends) so every scene animates on the way. Any wheel, touch, key, or pointer input cancels the trip. Reduced motion jumps directly.
 
-`components/site-footer.tsx` holds contact links and a ballpoint landscape of the Texas Hill Country. `assets/drawing/generator.mjs` draws it as four SVG layers (`public/footer/`), used as CSS masks over the `--ink` color; the layers develop back to front and settle with a slight parallax as the page ends (`lib/footer-reveal.ts`).
+`components/site-footer.tsx` holds contact links and a ballpoint landscape of the Texas Hill Country. `assets/drawing/generator.mjs` draws it as four SVG layers (`public/footer/`), used as CSS masks over the `--ink` color.
 
 `app/resume/page.tsx` renders a printable résumé from the same data. With the dev server running, `npm run resume:pdf` prints it to `public/antonio-rivera-resume.pdf`, which the footer links to. Shared contact details are in `lib/profile.ts`.
