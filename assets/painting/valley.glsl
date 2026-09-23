@@ -228,7 +228,7 @@ vec3 groundNormal(vec2 p, int maxL, float lod) {
 }
 
 // ---------- trees ----------
-const int TREES = 34;
+const int TREES = 46;
 // x, z, height, crown radius
 const vec4 TREE_SHAPE[TREES] = vec4[TREES](
   // the near bank, framing the right
@@ -246,7 +246,12 @@ const vec4 TREE_SHAPE[TREES] = vec4[TREES](
   // scattered across the far shore
   vec4(-18.0, 198.0, 11.0, 5.0), vec4(31.0, 204.0, 14.0, 5.4), vec4(37.0, 209.0, 9.0, 4.4),
   vec4(-24.0, 206.0, 8.0, 4.0), vec4(-45.0, 205.0, 15.0, 6.0), vec4(-54.0, 199.0, 10.0, 5.0),
-  vec4(52.0, 222.0, 16.0, 6.0), vec4(60.0, 214.0, 12.0, 5.2), vec4(9.0, 236.0, 7.0, 3.6)
+  vec4(52.0, 222.0, 16.0, 6.0), vec4(60.0, 214.0, 12.0, 5.2), vec4(9.0, 236.0, 7.0, 3.6),
+  // undergrowth along the point's edge and the far shore
+  vec4(-22.0, 100.0, 2.6, 2.2), vec4(-28.0, 108.0, 2.4, 2.0), vec4(-36.0, 97.0, 2.8, 2.4),
+  vec4(-48.0, 93.0, 2.6, 2.2), vec4(-58.0, 95.0, 3.0, 2.6), vec4(-70.0, 99.0, 2.6, 2.2),
+  vec4(-8.0, 191.0, 2.4, 2.4), vec4(6.0, 195.0, 2.2, 2.2), vec4(20.0, 199.0, 2.8, 2.6),
+  vec4(44.0, 206.0, 2.6, 2.4), vec4(-34.0, 202.0, 2.6, 2.4), vec4(-62.0, 206.0, 2.4, 2.2)
 );
 // seed, warmth (green 0 .. red 1), crown depth (share of the height in leaf), layer
 const vec4 TREE_LOOK[TREES] = vec4[TREES](
@@ -261,9 +266,12 @@ const vec4 TREE_LOOK[TREES] = vec4[TREES](
   vec4(34.0, 0.40, 1.0, 2.0), vec4(35.0, 0.70, 1.0, 2.0), vec4(36.0, 0.25, 1.0, 2.0),
   vec4(18.0, 0.50, 0.84, 2.0), vec4(19.0, 0.70, 0.84, 2.0), vec4(20.0, 0.16, 0.84, 2.0),
   vec4(21.0, 0.86, 0.84, 2.0), vec4(22.0, 0.60, 0.84, 2.0), vec4(23.0, 0.30, 0.84, 2.0),
-  vec4(24.0, 0.76, 0.84, 2.0), vec4(25.0, 0.44, 0.84, 2.0), vec4(26.0, 0.64, 0.84, 2.0)
+  vec4(24.0, 0.76, 0.84, 2.0), vec4(25.0, 0.44, 0.84, 2.0), vec4(26.0, 0.64, 0.84, 2.0),
+  vec4(51.0, 0.30, 1.0, 2.0), vec4(52.0, 0.62, 1.0, 2.0), vec4(53.0, 0.14, 1.0, 2.0),
+  vec4(54.0, 0.48, 1.0, 2.0), vec4(55.0, 0.22, 1.0, 2.0), vec4(56.0, 0.70, 1.0, 2.0),
+  vec4(57.0, 0.36, 1.0, 2.0), vec4(58.0, 0.10, 1.0, 2.0), vec4(59.0, 0.56, 1.0, 2.0),
+  vec4(60.0, 0.28, 1.0, 2.0), vec4(61.0, 0.80, 1.0, 2.0), vec4(62.0, 0.18, 1.0, 2.0)
 );
-const int CLUMPS = 36;
 
 const int LIMBS = 5;
 
@@ -280,16 +288,49 @@ vec3 limbEnd(int i, int k) {
   return vec3(cos(a) * reach + lean.x * 0.7, y, sin(a) * reach * 0.85 + lean.y * 0.7);
 }
 
-// Clump j of tree i: a ball of leaves around the end of one limb.
-vec4 clump(int i, int j) {
+
+// The crown's envelope: a lobe at the end of each limb, joined. Negative inside.
+float crownLobes(vec3 q, int i) {
   vec4 s = TREE_SHAPE[i];
-  float seedT = TREE_LOOK[i].x;
-  int k = j - (j / LIMBS) * LIMBS;
-  vec3 e = limbEnd(i, k);
-  vec3 h = hash33(vec3(seedT, float(j), 9.0));
-  float lobe = s.w * (0.34 + 0.16 * hash13(vec3(seedT, float(k), 12.0)));
-  vec3 o = e + (h * 2.0 - 1.0) * vec3(lobe, lobe * 0.75, lobe);
-  return vec4(o, s.w * (0.13 + 0.22 * pow(hash13(vec3(seedT, float(j), 2.0)), 1.5)));
+  float d = 1e5;
+  for (int k = 0; k < LIMBS; k++) {
+    vec3 e = limbEnd(i, k);
+    float r = s.w * (0.5 + 0.18 * hash13(vec3(TREE_LOOK[i].x, float(k), 12.0)));
+    d = smin(d, length((q - e) / vec3(1.0, 0.82, 1.0)) - r, s.w * 0.35);
+  }
+  return d;
+}
+
+// How big one cluster of leaves is on tree i.
+float clusterSize(int i) { return clamp(TREE_SHAPE[i].w * 0.09, 0.34, 0.6); }
+
+// Clusters of leaves fill the crown, one to a cell of a 3D grid: some cells stand empty, and the
+// clusters shrink toward the envelope's edge, so a crown is dabs of leaves with sky and shade
+// between them. Whether a cluster exists, and its size, depend only on where its center sits, so
+// the shape holds still as a ray marches through it. tag: the nearest cluster's own random.
+float leafClusters(vec3 q, int i, out float tag) {
+  float R = TREE_SHAPE[i].w;
+  float size = clusterSize(i);
+  vec3 g = q / size + TREE_LOOK[i].x * 7.31;
+  vec3 ip = floor(g), f = g - ip;
+  float d = 1e5;
+  tag = 0.0;
+  for (int z = -1; z <= 1; z++) {
+    for (int y = -1; y <= 1; y++) {
+      for (int x = -1; x <= 1; x++) {
+        vec3 o = vec3(x, y, z);
+        vec3 h = hash33(ip + o);
+        if (h.z < 0.1) continue;
+        vec3 local = o + 0.15 + 0.7 * h - f;
+        float edge = crownLobes(q + local * size, i) + (h.x - 0.5) * R * 0.25;
+        if (edge > 0.0) continue;
+        float r = size * (0.42 + 0.26 * h.y) * (0.5 + 0.5 * smoothstep(0.0, -R * 0.4, edge));
+        float dc = length(local) * size - r;
+        if (dc < d) { d = dc; tag = h.y; }
+      }
+    }
+  }
+  return d;
 }
 
 // Distance to one tree. mat: 1 leaves, 2 bark.
@@ -297,36 +338,70 @@ float treeDist(vec3 p, int i, out int mat) {
   vec4 s = TREE_SHAPE[i];
   float seedT = TREE_LOOK[i].x, H = s.z, R = s.w, depth = TREE_LOOK[i].z;
   vec3 q = p - vec3(s.x, 0.0, s.y);
-  vec3 bounds = vec3(R * 1.25, H * 0.56, R * 1.25);
+  vec3 bounds = vec3(R * 1.3, H * 0.56, R * 1.3);
   float k = length((q - vec3(0.0, H * 0.5, 0.0)) / bounds);
   mat = 0;
-  if (k > 1.25) return (k - 1.1) * min(bounds.x, bounds.y);
+  // Outside its bounds a tree is at least this far off; far enough out that even a small bush's
+  // bounds never pass for the bush.
+  if (k > 1.6) return (k - 1.1) * min(bounds.x, bounds.y);
 
-  // A trunk that forks into limbs, one to each lobe of the crown, each with a branch of its own.
+  // A trunk that forks into limbs, one to each lobe of the crown; each limb puts out branches
+  // toward the crown's edge, and those put out twigs.
   vec2 lean = (hash22(vec2(seedT, 3.1)) - 0.5) * 0.12 * H;
   float forkY = H * (1.0 - depth) * 0.95;
   vec3 fork = vec3(lean.x * 0.4, forkY, lean.y * 0.4);
-  float bark = cone(q, vec3(0.0, -2.0, 0.0), fork, H * 0.022, H * 0.013);
+  float bark = cone(q, vec3(0.0, -2.0, 0.0), fork, H * 0.021, H * 0.012);
   for (int k = 0; k < LIMBS; k++) {
     vec3 to = limbEnd(i, k);
-    bark = min(bark, cone(q, fork, to, H * 0.011, H * 0.003));
-    vec3 twig = to + (hash33(vec3(seedT, float(k), 6.0)) - 0.5) * vec3(R, H * 0.15, R);
-    bark = min(bark, cone(q, mix(fork, to, 0.5), twig, H * 0.006, H * 0.002));
+    bark = min(bark, cone(q, fork, to, H * 0.01, H * 0.0035));
+    for (int b = 0; b < 3; b++) {
+      vec3 h = hash33(vec3(seedT, float(k), 6.0 + float(b)));
+      vec3 from = mix(fork, to, 0.35 + 0.5 * h.x);
+      vec3 tip = from + normalize(h - 0.5 + vec3(0.0, 0.35, 0.0)) * R * (0.45 + 0.35 * h.y);
+      bark = min(bark, cone(q, from, tip, H * 0.005, H * 0.0012));
+      vec3 twig = mix(from, tip, 0.6) + normalize(hash33(h * 13.0) - 0.5) * R * 0.25;
+      bark = min(bark, cone(q, mix(from, tip, 0.6), twig, H * 0.0022, H * 0.0008));
+    }
   }
+  // Furrows in the bark.
+  if (bark < 0.3) bark += (noise3(q * vec3(11.0, 1.2, 11.0)) - 0.5) * 0.045 + (noise3(q * 30.0) - 0.5) * 0.008;
 
-  float leaves = 1e5;
-  for (int j = 0; j < CLUMPS; j++) {
-    vec4 c = clump(i, j);
-    leaves = smin(leaves, length(q - c.xyz) - c.w, R * 0.22);
-  }
-  if (leaves < 2.0) {
-    // Irregular masses, then smaller lumps, then the grain of the leaves.
-    leaves += (fbm3(q * (1.1 / R) + seedT * 3.7, 3) - 0.5) * R * 0.55;
-    leaves += (fbm3(q * 3.0, 3) - 0.5) * 0.9;
-    leaves += (0.5 - abs(noise3(q * 6.0) - 0.5)) * 0.28 - 0.1;
+  float size = clusterSize(i);
+  float lobes = crownLobes(q, i);
+  float leaves;
+  // Well outside the crown its envelope is a safe step, kept far enough out that a distant ray
+  // can't mistake it for the leaves.
+  if (lobes > R * 0.13 + size * 2.5) {
+    leaves = lobes - R * 0.13 - size * 0.8;
+  } else {
+    float tag;
+    leaves = leafClusters(q, i, tag);
+    // The leaves themselves, ruffling each cluster's edge.
+    leaves += (noise3(q * (7.0 / size)) - 0.5) * size * 0.3 + (noise3(q * (2.4 / size) + 3.0) - 0.5) * size * 0.3;
   }
   mat = leaves < bark ? 1 : 2;
   return min(leaves, bark);
+}
+
+// Boulders at the water's edge: x, z, radius, layer.
+const int ROCKS = 6;
+const vec4 ROCK_AT[ROCKS] = vec4[ROCKS](
+  vec4(7.4, 20.5, 1.0, 3.0), vec4(8.9, 25.0, 0.7, 3.0), vec4(10.6, 31.5, 1.25, 3.0),
+  vec4(-21.5, 103.0, 1.4, 2.0), vec4(-24.5, 96.5, 0.9, 2.0), vec4(-31.0, 92.5, 1.1, 2.0)
+);
+
+float rockDist(vec3 p, int r) {
+  vec4 k = ROCK_AT[r];
+  vec3 q = p - vec3(k.x, -0.35 * k.z, k.y);
+  float d = length(q / vec3(1.25, 0.7, 1.0)) * 0.7 - k.z * 0.7;
+  if (d > 0.5) return d;
+  return d + (fbm3(q * 1.6 + float(r) * 3.1, 4) - 0.5) * k.z * 0.45;
+}
+
+// A tree (ids 0..TREES-1) or a boulder (100 and up).
+float objectDist(vec3 p, int id, out int mat) {
+  if (id >= 100) { mat = 3; return rockDist(p, id - 100); }
+  return treeDist(p, id, mat);
 }
 
 float trees(vec3 p, int maxL, out int id, out int mat) {
@@ -338,6 +413,11 @@ float trees(vec3 p, int maxL, out int id, out int mat) {
     int m;
     float di = treeDist(p, i, m);
     if (di < d) { d = di; id = i; mat = m; }
+  }
+  for (int r = 0; r < ROCKS; r++) {
+    if (int(ROCK_AT[r].w) > maxL) continue;
+    float dr = rockDist(p, r);
+    if (dr < d) { d = dr; id = 100 + r; mat = 3; }
   }
   return d;
 }
@@ -357,8 +437,8 @@ float marchTrees(vec3 ro, vec3 rd, float tMax, int maxL, out int id, out int mat
 vec3 treeNormal(vec3 p, int i) {
   const vec2 e = vec2(0.03, -0.03);
   int m;
-  return normalize(e.xyy * treeDist(p + e.xyy, i, m) + e.yyx * treeDist(p + e.yyx, i, m) +
-                   e.yxy * treeDist(p + e.yxy, i, m) + e.xxx * treeDist(p + e.xxx, i, m));
+  return normalize(e.xyy * objectDist(p + e.xyy, i, m) + e.yyx * objectDist(p + e.yyx, i, m) +
+                   e.yxy * objectDist(p + e.yxy, i, m) + e.xxx * objectDist(p + e.xxx, i, m));
 }
 
 float treeOcclusion(vec3 p, vec3 n, int i) {
@@ -366,38 +446,55 @@ float treeOcclusion(vec3 p, vec3 n, int i) {
   for (int k = 1; k <= 5; k++) {
     float h = 0.6 * float(k);
     int m;
-    occ += (h - treeDist(p + n * h, i, m)) * scale;
+    occ += (h - objectDist(p + n * h, i, m)) * scale;
     scale *= 0.75;
   }
   return clamp(1.0 - 0.35 * occ, 0.25, 1.0);
 }
 
 // ---------- reeds ----------
-const vec3 REEDS[3] = vec3[3](vec3(4.8, 12.0, 1.0), vec3(6.3, 14.5, 0.85), vec3(5.0, 17.0, 0.75));
+// Clumps in the shallows by the right bank: x, z, size.
+// The last six are tall grass along the bank's edge.
+const int REED_CLUMPS = 11;
+const vec3 REEDS[REED_CLUMPS] = vec3[REED_CLUMPS](
+  vec3(4.8, 12.0, 1.0), vec3(6.3, 14.5, 0.85), vec3(5.0, 17.0, 0.75), vec3(3.4, 13.6, 0.8), vec3(7.4, 19.0, 0.7),
+  vec3(7.0, 12.5, 0.5), vec3(7.9, 15.5, 0.55), vec3(8.8, 18.5, 0.5), vec3(10.4, 23.0, 0.55), vec3(13.2, 33.0, 0.55), vec3(17.6, 47.0, 0.55)
+);
 
-float reeds(vec3 p) {
+// Distance to the reeds. tag.x: the blade's own random; tag.y: 1 on a cattail's head.
+float reeds(vec3 p, out vec2 tag) {
   float d = 1e5;
-  for (int c = 0; c < 3; c++) {
-    vec3 q = p - vec3(REEDS[c].x, -0.4, REEDS[c].y);
-    float bound = length(q.xz) - 1.6;
-    if (bound > 0.3 || q.y > 3.4) { d = min(d, max(bound, q.y - 3.2)); continue; }
-    for (int j = 0; j < 16; j++) {
+  tag = vec2(0.0);
+  for (int c = 0; c < REED_CLUMPS; c++) {
+    bool grass = c >= 5;
+    vec3 q = p - vec3(REEDS[c].x, grass ? 0.3 : -0.4, REEDS[c].y);
+    float bound = length(q.xz) - 1.8;
+    if (bound > 0.3 || q.y > 3.6) { d = min(d, max(bound, q.y - 3.4)); continue; }
+    for (int j = 0; j < 30; j++) {
       vec3 h = hash33(vec3(float(c), float(j), 7.0));
-      vec3 base = vec3((h.x - 0.5) * 1.1, 0.0, (h.y - 0.5) * 0.8);
-      float len = (1.5 + 1.3 * h.z) * REEDS[c].z;
-      vec3 bend = vec3((h.y - 0.45) * 0.7, len * 0.55, (h.x - 0.5) * 0.3);
-      vec3 tip = base + vec3((h.y - 0.45) * 1.6, len, (h.x - 0.5) * 0.5);
-      d = min(d, cone(q, base, base + bend, 0.03, 0.02));
-      d = min(d, cone(q, base + bend, tip, 0.02, 0.003));
+      vec3 base = vec3((h.x - 0.5) * 1.3, 0.0, (h.y - 0.5) * 0.9);
+      float len = (1.4 + 1.4 * h.z) * REEDS[c].z;
+      vec3 lean = vec3((h.y - 0.45) * 1.1, 0.0, (h.x - 0.5) * 0.45);
+      // Each blade bends more toward its tip.
+      vec3 p1 = base + lean * 0.06 + vec3(0.0, len * 0.35, 0.0);
+      vec3 p2 = base + lean * 0.35 + vec3(0.0, len * 0.7, 0.0);
+      vec3 p3 = base + lean + vec3(0.0, len * 0.96, 0.0);
+      float w = grass ? 0.012 : 0.02;
+      float blade = min(cone(q, base, p1, w, w * 0.8), min(cone(q, p1, p2, w * 0.8, w * 0.45), cone(q, p2, p3, w * 0.45, 0.002)));
+      if (blade < d) { d = blade; tag = vec2(h.z, grass ? 2.0 : 0.0); }
+      if (!grass && fract(h.x * 17.3) > 0.8) {
+        float head = cone(q, mix(p2, p3, 0.3), mix(p2, p3, 0.58), 0.042, 0.038);
+        if (head < d) { d = head; tag = vec2(h.z, 1.0); }
+      }
     }
   }
   return d;
 }
 
-float marchReeds(vec3 ro, vec3 rd, float tMax) {
-  float t = 8.0;
-  for (int i = 0; i < 120; i++) {
-    float d = reeds(ro + rd * t);
+float marchReeds(vec3 ro, vec3 rd, float t, float tMax) {
+  vec2 tag;
+  for (int i = 0; i < 140; i++) {
+    float d = reeds(ro + rd * t, tag);
     if (d < 0.002) return t;
     t += d * 0.8;
     if (t > tMax) break;
@@ -421,7 +518,7 @@ const float CLOUD_HI = 3400.0;
 float cloudDensity(vec3 p, int octaves) {
   if (p.y <= CLOUD_LO || p.y >= CLOUD_HI) return 0.0;
   // None right overhead: the heaps thin out toward the viewer and sit out over the valley.
-  float away = smoothstep(4200.0, 9500.0, length(p.xz));
+  float away = smoothstep(6000.0, 12500.0, length(p.xz));
   if (away <= 0.0) return 0.0;
   const float CELL = 3400.0;
   // Warp the field so no two heaps share a silhouette.
@@ -450,7 +547,7 @@ float cloudDensity(vec3 p, int octaves) {
   if (dome < -0.4) return 0.0;
   vec3 q = p * 0.0019;
   float billow = 0.0, amp = 0.5, norm = 0.0;
-  for (int j = 0; j < 6; j++) {
+  for (int j = 0; j < 7; j++) {
     if (j >= octaves) break;
     billow += amp * (1.0 - abs(2.0 * noise3(q) - 1.0));
     norm += amp;
@@ -458,7 +555,7 @@ float cloudDensity(vec3 p, int octaves) {
     amp *= 0.5;
   }
   billow /= norm;
-  float d = dome + (billow - 0.62) * 0.9;
+  float d = dome + (billow - 0.62) * 1.05;
   return smoothstep(0.0, 0.2, d - (1.0 - away) * 0.6);
 }
 
@@ -470,7 +567,7 @@ vec4 clouds(vec3 ro, vec3 rd) {
   float t0 = (CLOUD_LO - ro.y) / rd.y;
   float t1 = min((CLOUD_HI - ro.y) / rd.y, t0 + 30000.0);
   if (t0 > 90000.0) return vec4(0.0, 0.0, 0.0, 1.0);
-  const int STEPS = 64;
+  const int STEPS = 110;
   float dt = (t1 - t0) / float(STEPS);
   float mu = dot(rd, SUN);
   float ph = mix(phase(mu, 0.65), phase(mu, -0.15), 0.35) * 12.566;
@@ -478,7 +575,7 @@ vec4 clouds(vec3 ro, vec3 rd) {
   vec3 col = vec3(0.0);
   for (int i = 0; i < STEPS; i++) {
     vec3 p = ro + rd * (t0 + dt * (float(i) + seed));
-    float d = cloudDensity(p, 5);
+    float d = cloudDensity(p, 7);
     if (d <= 0.001) continue;
     float optical = 0.0, ls = 70.0;
     for (int j = 0; j < 6; j++) {
@@ -500,9 +597,20 @@ vec4 clouds(vec3 ro, vec3 rd) {
   return vec4(col * fade, 1.0 - (1.0 - T) * fade);
 }
 
+// Cirrus far above the heaps: thin, combed out by the wind.
+vec3 cirrus(vec3 rd, vec3 base) {
+  if (rd.y < 0.02) return base;
+  vec2 p = rd.xz / rd.y * 9000.0;
+  vec2 q = vec2(p.x * 0.00012 + p.y * 0.00003, p.y * 0.00045);
+  float streaks = fbm(q + fbm(q * 3.0, 3) * 0.6, 6);
+  float wisp = smoothstep(0.58, 0.8, streaks) * smoothstep(0.02, 0.2, rd.y) * smoothstep(0.35, 0.62, fbm(p * 0.00005 + 4.0, 3));
+  vec3 lit = mix(vec3(0.95, 0.93, 0.9), vec3(1.0, 0.86, 0.66), pow(max(dot(rd, SUN), 0.0), 3.0));
+  return mix(base, lit * 1.05, wisp * 0.42);
+}
+
 vec3 sky(vec3 ro, vec3 rd) {
   vec4 c = clouds(ro, rd);
-  return skyColor(rd) * c.a + c.rgb;
+  return cirrus(rd, skyColor(rd)) * c.a + c.rgb;
 }
 
 // ---------- air ----------
@@ -514,6 +622,13 @@ vec3 applyAir(vec3 col, vec3 ro, vec3 rd, float t) {
   float s = pow(max(dot(rd, SUN), 0.0), 6.0);
   vec3 haze = mix(vec3(0.36, 0.49, 0.76), vec3(1.0, 0.82, 0.58), 0.06 + 0.75 * s);
   return mix(col, haze, amount);
+}
+
+// Shadows the heaps cast across the land, looking up the sun's ray to the clouds.
+float cloudShadow(vec3 p) {
+  float h = CLOUD_LO + 350.0;
+  vec3 c = p + SUN * ((h - p.y) / SUN.y);
+  return 1.0 - 0.6 * smoothstep(0.0, 0.45, cloudDensity(c, 3));
 }
 
 // ---------- shading ----------
@@ -546,19 +661,17 @@ float treeShadow(vec3 ro) {
 
 vec3 leafColor(vec3 p, int i) {
   vec4 s = TREE_SHAPE[i];
-  float seedT = TREE_LOOK[i].x;
   vec3 q = p - vec3(s.x, 0.0, s.y);
-  float best = 1e5, patch_ = 0.0;
-  for (int j = 0; j < CLUMPS; j++) {
-    vec4 c = clump(i, j);
-    float d = length(q - c.xyz) - c.w;
-    if (d < best) { best = d; patch_ = hash13(vec3(seedT, float(j), 4.0)); }
-  }
-  float mottle = fbm3(q * 0.9 + seedT, 3);
-  float w = TREE_LOOK[i].y + (patch_ - 0.5) * 0.4 + (mottle - 0.5) * 0.5;
+  float tag;
+  leafClusters(q, i, tag);
+  float size = clusterSize(i);
+  // Each cluster its own shade of the tree's color, and a speckle of single leaves across it.
+  float w = TREE_LOOK[i].y + (tag - 0.5) * 0.42 + (fbm3(q * (0.9 / s.w) + TREE_LOOK[i].x, 2) - 0.5) * 0.4;
+  float leaf = noise3(q * (9.0 / size));
+  w += (leaf - 0.5) * 0.18;
   vec3 c = autumn(w);
-  c = mix(c, vec3(dot(c, vec3(0.3, 0.55, 0.15))), 0.18);
-  return c * (0.7 + 0.45 * noise3(q * 3.0));
+  c = mix(c, vec3(dot(c, vec3(0.3, 0.55, 0.15))), 0.14);
+  return c * (0.62 + 0.62 * leaf);
 }
 
 vec3 shadeTree(vec3 p, vec3 rd, int i, int mat) {
@@ -571,17 +684,32 @@ vec3 shadeTree(vec3 p, vec3 rd, int i, int mat) {
   if (mat == 1) {
     albedo = leafColor(p, i);
     diff = clamp(dot(n, SUN) * 0.75 + 0.25, 0.0, 1.0);
+    vec3 q = p - vec3(TREE_SHAPE[i].x, 0.0, TREE_SHAPE[i].y);
+    occ *= 0.5 + 0.5 * smoothstep(-TREE_SHAPE[i].w * 0.8, -TREE_SHAPE[i].w * 0.05, crownLobes(q, i));
+  } else if (mat == 3) {
+    // Granite, lichened on top, dark and wet where it meets the water.
+    float grain = fbm3(p * 3.0, 4);
+    albedo = mix(vec3(0.09, 0.085, 0.08), vec3(0.22, 0.2, 0.18), grain);
+    albedo = mix(albedo, vec3(0.3, 0.3, 0.2), smoothstep(0.55, 0.7, fbm3(p * 1.7 + 5.0, 3)) * smoothstep(0.2, 0.8, n.y) * 0.7);
+    albedo *= mix(0.45, 1.0, smoothstep(0.02, 0.25, p.y));
+    diff = max(dot(n, SUN), 0.0);
   } else {
     vec3 q = p - vec3(TREE_SHAPE[i].x, 0.0, TREE_SHAPE[i].y);
-    albedo = vec3(0.06, 0.05, 0.042) * (0.6 + 0.8 * noise(vec2(atan(q.z, q.x) * 4.0, q.y * 0.8)));
+    float streak = noise3(q * vec3(11.0, 1.2, 11.0)) * 0.7 + noise3(q * 5.0) * 0.3;
+    albedo = mix(vec3(0.028, 0.024, 0.02), vec3(0.11, 0.095, 0.08), streak);
+    // Lichen and moss in patches, on the shaded side more than the lit.
+    float lichen = smoothstep(0.55, 0.75, fbm3(q * 1.3, 3)) * (0.6 - 0.4 * dot(n, SUN));
+    albedo = mix(albedo, vec3(0.16, 0.17, 0.12), clamp(lichen, 0.0, 0.8));
     diff = max(dot(n, SUN), 0.0);
   }
-  vec3 light = SUN_COLOR * diff * sh + AMBIENT * (0.35 + 0.45 * n.y) * occ * occ + vec3(0.16, 0.12, 0.06) * (0.5 - 0.5 * n.y) * occ;
+  vec3 light = SUN_COLOR * diff * sh + AMBIENT * (0.5 + 0.4 * n.y) * occ + vec3(0.16, 0.12, 0.06) * (0.5 - 0.5 * n.y) * occ;
   vec3 col = albedo * light;
   if (mat == 1) {
     // Sun through the leaves, looking toward it.
     float back = pow(max(dot(rd, SUN), 0.0), 2.0);
     col += albedo * SUN_COLOR * back * sh * 0.55 * occ;
+    // Leaves glow a little even in shade: daylight through them.
+    col += albedo * (AMBIENT * 0.35 + SUN_COLOR * 0.05) * occ;
   }
   return col;
 }
@@ -591,11 +719,15 @@ vec3 shadeGround(vec3 p, vec3 rd, float t, int owner) {
   vec3 n = groundNormal(p.xz, owner, lod);
   float sh = groundShadow(p + n * max(0.1, lod));
   if (p.z < 280.0 && sh > 0.0) sh *= treeShadow(p + n * 0.1);
+  sh *= cloudShadow(p);
   vec3 albedo;
   bool leafy = false;
   if (owner == RANGE) {
     float rock = smoothstep(0.35, 0.75, 1.0 - n.y);
-    vec3 forest = mix(vec3(0.04, 0.055, 0.04), vec3(0.11, 0.075, 0.045), fbm(p.xz * 0.0018, 4));
+    vec3 forest = mix(vec3(0.03, 0.05, 0.035), vec3(0.11, 0.075, 0.045), fbm(p.xz * 0.0018, 4));
+    // Stands of turned trees, and the grain of single crowns.
+    forest = mix(forest, vec3(0.2, 0.09, 0.035), smoothstep(0.58, 0.72, fbm(p.xz * 0.0055 + 2.0, 3)) * 0.8);
+    forest *= 0.75 + 0.5 * fbm(p.xz * 0.025, 3);
     albedo = mix(forest, vec3(0.16, 0.15, 0.14), rock * 0.35);
   } else {
     float base = banks(p.xz) + foothills(p.xz);
@@ -613,7 +745,12 @@ vec3 shadeGround(vec3 p, vec3 rd, float t, int owner) {
       float g = fbm(p.xz * 0.06, 4) + (fbm(p.xz * vec2(2.2, 0.7), 3) - 0.5) * smoothstep(80.0, 20.0, t) * 0.6;
       albedo = mix(vec3(0.10, 0.11, 0.035), vec3(0.30, 0.22, 0.065), smoothstep(0.3, 0.7, g));
       albedo = mix(albedo, vec3(0.28, 0.14, 0.05), 0.35 * smoothstep(0.55, 0.75, fbm(p.xz * 0.2, 3)));
-      if (owner == NEAR) albedo *= 0.55 + 0.6 * fbm(p.xz * vec2(3.0, 1.2), 4);
+      if (owner == NEAR) {
+        // Tussocks and the grain of the grass, fine enough to read as brushwork up close.
+        albedo *= 0.55 + 0.6 * fbm(p.xz * vec2(3.0, 1.2), 4);
+        albedo *= 0.7 + 0.6 * noise(p.xz * vec2(16.0, 5.0)) * noise(p.xz * vec2(5.0, 19.0) + 3.0);
+        albedo = mix(albedo, vec3(0.3, 0.2, 0.08), 0.3 * smoothstep(0.6, 0.8, fbm(p.xz * 0.9, 3)));
+      }
       albedo = mix(vec3(0.06, 0.045, 0.03), albedo, smoothstep(-1.0, 3.0, s));
     }
   }
@@ -626,9 +763,18 @@ vec3 shadeGround(vec3 p, vec3 rd, float t, int owner) {
 
 vec3 shadeReed(vec3 p, vec3 rd) {
   const vec2 e = vec2(0.01, -0.01);
-  vec3 n = normalize(e.xyy * reeds(p + e.xyy) + e.yyx * reeds(p + e.yyx) + e.yxy * reeds(p + e.yxy) + e.xxx * reeds(p + e.xxx));
+  vec2 tag;
+  vec3 n = normalize(e.xyy * reeds(p + e.xyy, tag) + e.yyx * reeds(p + e.yyx, tag) + e.yxy * reeds(p + e.yxy, tag) + e.xxx * reeds(p + e.xxx, tag));
+  reeds(p, tag);
   float sh = treeShadow(p + n * 0.05);
-  vec3 albedo = mix(vec3(0.07, 0.09, 0.03), vec3(0.40, 0.32, 0.10), smoothstep(0.2, 2.6, p.y));
+  // Green at the water, straw toward the tips; some blades already turned; cattails brown.
+  vec3 green = mix(vec3(0.06, 0.08, 0.03), vec3(0.13, 0.15, 0.05), tag.x);
+  vec3 straw = mix(vec3(0.3, 0.23, 0.09), vec3(0.44, 0.33, 0.13), fract(tag.x * 7.1));
+  float turned = tag.y > 1.5 ? 0.75 : 0.45;
+  vec3 albedo = mix(green, straw, smoothstep(0.2, 2.6, p.y) * (turned + (1.0 - turned) * fract(tag.x * 3.3)));
+  albedo *= 0.65 + 0.55 * noise3(p * vec3(3.0, 11.0, 3.0));
+  albedo *= mix(0.55, 1.0, smoothstep(0.0, 0.6, p.y));
+  if (tag.y > 0.5 && tag.y < 1.5) albedo = vec3(0.11, 0.055, 0.03) * (0.8 + 0.4 * noise3(p * 40.0));
   float diff = clamp(dot(n, SUN) * 0.6 + 0.4, 0.0, 1.0);
   return albedo * (SUN_COLOR * diff * sh + AMBIENT * 0.8);
 }
@@ -639,9 +785,11 @@ vec3 reflection(vec3 ro, vec3 rd) {
   float tg = marchGround(ro, rd, 40000.0, NEAR, owner);
   int id, mat;
   float tt = marchTrees(ro, rd, tg > 0.0 ? min(tg, 420.0) : 420.0, NEAR, id, mat);
+  float tr = ro.z < 58.0 ? marchReeds(ro, rd, 0.02, tt > 0.0 ? min(tt, 8.0) : 8.0) : -1.0;
   vec3 col;
   float t;
-  if (tt > 0.0) { t = tt; col = shadeTree(ro + rd * t, rd, id, mat); }
+  if (tr > 0.0) { t = tr; col = shadeReed(ro + rd * t, rd); }
+  else if (tt > 0.0) { t = tt; col = shadeTree(ro + rd * t, rd, id, mat); }
   else if (tg > 0.0) { t = tg; col = shadeGround(ro + rd * t, rd, t, owner); }
   else return sky(ro, rd);
   return applyAir(col, ro, rd, t);
@@ -671,6 +819,31 @@ vec4 driftingLeaves(vec2 p, float t) {
   return vec4(0.0);
 }
 
+// Lily pads in the shallows by the reeds: rgb, coverage. Each a disc with its notch.
+vec4 lilyPads(vec2 p) {
+  float zone = smoothstep(3.6, 1.2, abs(p.x - 3.8)) * smoothstep(8.0, 11.0, p.y) * smoothstep(27.0, 19.0, p.y);
+  if (zone <= 0.0) return vec4(0.0);
+  vec2 g = p / 0.75;
+  vec2 i = floor(g), f = fract(g);
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      vec2 o = vec2(x, y);
+      vec3 h = hash33(vec3(i + o, 4.2));
+      if (h.z > zone * 0.32) continue;
+      vec2 d = o + 0.2 + 0.6 * h.xy - f;
+      float a = h.x * 6.283;
+      d = mat2(cos(a), -sin(a), sin(a), cos(a)) * d;
+      float r = length(d), radius = 0.26 + 0.14 * h.y;
+      if (r > radius || (d.x > 0.0 && abs(d.y) < d.x * 0.35)) continue;
+      vec3 c = mix(vec3(0.05, 0.08, 0.03), vec3(0.14, 0.14, 0.05), h.y);
+      c = mix(c, vec3(0.2, 0.08, 0.04), step(0.85, fract(h.y * 9.1)));
+      c *= 0.8 + 0.5 * smoothstep(radius * 0.75, radius, r);
+      return vec4(c, 1.0);
+    }
+  }
+  return vec4(0.0);
+}
+
 vec3 shadeWater(vec3 p, vec3 rd, float t) {
   // Long, low ripples stretch the reflections down the water, calmer with distance.
   vec2 q = p.xz * vec2(0.35, 1.7);
@@ -683,6 +856,11 @@ vec3 shadeWater(vec3 p, vec3 rd, float t) {
   vec3 refl = reflection(p + vec3(0.0, 0.02, 0.0), r);
   float fres = 0.02 + 0.98 * pow(1.0 - max(dot(n, -rd), 0.0), 5.0);
   vec3 col = mix(vec3(0.02, 0.026, 0.02), refl * 0.92, clamp(0.55 + fres, 0.0, 0.95));
+  vec4 pad = lilyPads(p.xz);
+  if (pad.a > 0.0) {
+    float sh = treeShadow(p + vec3(0.0, 0.05, 0.0));
+    return mix(col, pad.rgb * (SUN_COLOR * 0.75 * sh + AMBIENT * 0.9), pad.a);
+  }
   vec4 leaf = driftingLeaves(p.xz, t);
   if (leaf.a > 0.0) {
     float sh = treeShadow(p + vec3(0.0, 0.05, 0.0));
@@ -713,10 +891,10 @@ vec4 render(vec3 rd, out float dist) {
   int id = -1, mat = 0;
   if (maxL >= HILLS) {
     float tt = marchTrees(CAM, rd, t > 0.0 ? min(t, 420.0) : 420.0, maxL, id, mat);
-    if (tt > 0.0) { t = tt; kind = 3; owner = int(TREE_LOOK[id].w); }
+    if (tt > 0.0) { t = tt; kind = 3; owner = id >= 100 ? int(ROCK_AT[id - 100].w) : int(TREE_LOOK[id].w); }
   }
   if (maxL >= NEAR) {
-    float tr = marchReeds(CAM, rd, t > 0.0 ? min(t, 30.0) : 30.0);
+    float tr = marchReeds(CAM, rd, 8.0, t > 0.0 ? min(t, 62.0) : 62.0);
     if (tr > 0.0) { t = tr; kind = 4; owner = NEAR; }
   }
   if (kind == 0) return uLayer == ALL ? vec4(sky(CAM, rd), 1.0) : vec4(0.0);

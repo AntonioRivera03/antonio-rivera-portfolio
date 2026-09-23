@@ -108,12 +108,16 @@ function webpSize(file) {
   return [data.readUInt16LE(26) & 0x3fff, data.readUInt16LE(28) & 0x3fff];
 }
 
-test("the valley's layers share one frame and stay light to load", () => {
-  let total = 0;
+test("the valley's layers share one frame at each size, and ordinary screens load a light set", () => {
+  let full = 0, half = 0;
   for (const layer of ["sky", "range", "hills", "near"]) {
-    const file = new URL(`../public/life/${layer}.webp`, import.meta.url);
-    assert.deepEqual(webpSize(file), [2560, 1440], layer);
-    total += statSync(file).size;
+    const large = new URL(`../public/life/${layer}.webp`, import.meta.url);
+    const small = new URL(`../public/life/${layer}-1920.webp`, import.meta.url);
+    assert.deepEqual(webpSize(large), [3840, 2160], layer);
+    assert.deepEqual(webpSize(small), [1920, 1080], layer);
+    full += statSync(large).size;
+    half += statSync(small).size;
   }
-  assert.ok(total < 1800 * 1024, `${Math.round(total / 1024)} KB`);
+  assert.ok(full < 2600 * 1024, `full size: ${Math.round(full / 1024)} KB`);
+  assert.ok(half < 1000 * 1024, `half size: ${Math.round(half / 1024)} KB`);
 });

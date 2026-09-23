@@ -1,4 +1,5 @@
-// Paints the life page's valley with headless Chrome and saves its layers to public/life/*.webp.
+// Paints the life page's valley with headless Chrome and saves its layers to public/life/*.webp,
+// full size and half.
 // Usage: npm run life:valley                       every layer, full size
 //        npm run life:valley -- --preview [width]  the whole scene in one image, to assets/painting/generated/
 //        npm run life:valley -- --layer near       one layer
@@ -9,10 +10,10 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 const LAYERS = ["sky", "range", "hills", "near"];
-const WIDTH = 2560;
-const HEIGHT = 1440;
+const WIDTH = 3840;
+const HEIGHT = 2160;
 // Brush radius in pixels at full size, near and far; the far distance paints broader and softer.
-const RADIUS = [4.5, 7];
+const RADIUS = [5, 7.5];
 // Passes of the brush: a second one flattens the render further into strokes.
 const STROKES = 1;
 
@@ -84,6 +85,17 @@ async function paint() {
       const file = join(out, `${preview ? `preview-${layer}` : layer}.${preview ? "png" : "webp"}`);
       writeFileSync(file, Buffer.from(data.split(",")[1], "base64"));
       console.log(`${file.replace(`${process.cwd()}/`, "")}  ${(statSync(file).size / 1024).toFixed(0)} KB  ${((Date.now() - started) / 1000).toFixed(1)}s`);
+      if (preview) continue;
+      // A half-size copy for ordinary screens and phones.
+      const half = await evaluate(`(async () => {
+        const img = new Image(); img.src = ${JSON.stringify(data)}; await img.decode();
+        const c = document.createElement("canvas"); c.width = ${WIDTH / 2}; c.height = ${HEIGHT / 2};
+        const ctx = c.getContext("2d"); ctx.imageSmoothingQuality = "high"; ctx.drawImage(img, 0, 0, c.width, c.height);
+        return c.toDataURL("image/webp", 0.86);
+      })()`);
+      const small = join(out, `${layer}-${WIDTH / 2}.webp`);
+      writeFileSync(small, Buffer.from(half.split(",")[1], "base64"));
+      console.log(`${small.replace(`${process.cwd()}/`, "")}  ${(statSync(small).size / 1024).toFixed(0)} KB`);
     }
     socket.close();
   } finally {

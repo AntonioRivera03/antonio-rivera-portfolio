@@ -2,13 +2,15 @@
 
 /** The autumn valley, painted by assets/painting (`npm run life:valley`), back to front. */
 export const VALLEY_LAYERS = ["sky", "range", "hills", "near"] as const;
-export const valleyLayer = (layer: (typeof VALLEY_LAYERS)[number]) => `/life/${layer}.webp`;
+type Layer = (typeof VALLEY_LAYERS)[number];
+/** Each layer at half size (1920 wide) and full (3840); the browser picks for the screen. */
+export const valleyLayerSet = (layer: Layer) => `/life/${layer}-1920.webp 1920w, /life/${layer}.webp 3840w`;
 
 export function LifeLandscape() {
   return (
     <div className="life-land" aria-hidden="true">
       {VALLEY_LAYERS.map((layer) => (
-        <img key={layer} className={`land-layer land-${layer}`} src={valleyLayer(layer)} width="2560" height="1440" alt="" decoding="async" draggable={false} />
+        <img key={layer} className={`land-layer land-${layer}`} src={`/life/${layer}-1920.webp`} srcSet={valleyLayerSet(layer)} sizes="100vw" width="3840" height="2160" alt="" decoding="async" draggable={false} />
       ))}
     </div>
   );
