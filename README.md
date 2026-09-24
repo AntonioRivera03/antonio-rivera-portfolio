@@ -70,7 +70,7 @@ node --experimental-strip-types tests/crt-document.test.mjs
 node --experimental-strip-types tests/crt-companion.test.mjs
 node --experimental-strip-types tests/portfolio-journey.test.mjs
 node --experimental-strip-types tests/room-layout.test.mjs
-node --experimental-strip-types tests/life-flock.test.mjs
+node --experimental-strip-types tests/life-search.test.mjs
 ```
 
 ## Skills and room
@@ -85,11 +85,11 @@ Room furniture faces inward at 45°. A shared 12° camera projects the floating 
 
 Once full screen, the view takes the `/life` address (`history.pushState`) without leaving the page, so the room stays mounted behind it. Browser back, Escape, and the view's back button all return through history to the same scroll position. `app/life/page.tsx` renders the same view for direct visits and refreshes; both use `components/life-journey.tsx`. The path is `LIFE_PATH` in `lib/room/life.ts`.
 
-## Life: the lake and the flock
+## Life: the lake and the search
 
 The life page opens on the sky. The arrow at the bottom tilts the view down (`/life#valley`) to an autumn lake: turning trees, a still reflecting lake with cattails and lily pads, and mountains under a summer-blue sky. The painting (`public/life/painting.webp`, plus a Lanczos upscale at 2560 wide that large and dense screens load through `srcset`) rises into view on the way down, its top melting through the clouds' mist. The up arrow returns to the sky; a link or refresh at `/life#valley` lands there directly.
 
-`components/bird-search.tsx` is the search: a soft black pill at the bottom. Each result flies in as a bird and hovers in the open air over the lake, clear of the big tree (`PAINTING` in `lib/life/flock.ts` marks where it begins); moving the pointer over the flock surfaces the titles of the birds nearby. The pieces live in `lib/life/writing.ts` (title, kind, subjects, and an optional link and species); every word of a search must match, and title matches rank first. `lib/life/birds.ts` draws fifteen species in profile with 3D wings that beat, fold and glide, feathered down to separate primaries, secondaries and covert rows mapped onto the moving wing, with each species' field marks (a mallard's speculum, a kestrel's moustache, a hawk's belly band and dark underwing edge, a goldfinch's wing bars) and painted strokes across the body; `lib/life/flock.ts` places them so each bird keeps room for its title above it, so titles shown together never overlap, and birds already hovering keep their places as the search changes. What doesn't fit is left out, and the pill says how many of how many are showing. `/` opens the search; arrow keys move between birds; Escape returns to the pill, then clears it. On touch, the first tap shows a title and the second opens it. With reduced motion, birds appear in place with their wings held out. The entries are examples for now, without links.
+`components/life-search.tsx` is the search: a glass pill in the middle of the lake. Typing sends the pill to the bottom of the screen first; then a droplet necks and pinches off its top and grows up into a glass panel of results, its foot just above the pill. Clearing the search runs it back in order: the panel draws down into a droplet, the droplet sinks into the pill, and the pill returns to the middle. While there's a search, the arrow back up to the sky steps aside. The droplet and its neck are one clipped shape, so the page's blur runs through them without a seam; `lib/life/droplet.ts` holds that geometry, the timing and the panel's layout. Each result shows its title, and under it its topic in the topic's color beside a small four-pointed claw star. The panel is as tall as its results, up to the room above the pill, and scrolls past that. The pieces live in `lib/life/writing.ts` (title, kind, topic, subjects, and an optional link); every word of a search must match, and title matches rank first. `/` opens the search; the arrow keys move through linked results; Escape returns to the pill, then clears it. With reduced motion the panel simply appears. The entries are examples for now, without links.
 
 ## Navigation, footer, and résumé PDF
 

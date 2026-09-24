@@ -383,7 +383,7 @@ body:has(.life-page)::after { display: none; }
 html:has(.life-page) { scrollbar-gutter: auto; }
 body:has(.life-page) { overflow: hidden; }
 
-/* Life: it opens on the sky; the arrow tilts down to an autumn valley, where the search's birds fly. */
+/* Life: it opens on the sky; the arrow tilts down to an autumn lake, where the search waits. */
 .life-journey { position: absolute; inset: 0; overflow: hidden; --tilt: 2.6s cubic-bezier(.64, 0, .2, 1); }
 .life-sky { position: absolute; inset: 0; background: #8cb5d1 url('/about/clouds.png') center / cover; -webkit-mask-image: linear-gradient(#000 84%, transparent); mask-image: linear-gradient(#000 84%, transparent); transition: transform var(--tilt); }
 /* Rides just behind the painted sky: its colors while the painting loads. */
@@ -393,7 +393,8 @@ body:has(.life-page) { overflow: hidden; }
 .life-journey[data-scene="field"] .life-sky, .life-journey[data-scene="field"] .life-sky-scene { transform: translate3d(0, -100%, 0); }
 .life-journey[data-scene="field"] .life-sky-scene { opacity: 0; transition: transform var(--tilt), opacity .8s ease; }
 .life-journey[data-scene="field"] .life-haze { transform: none; }
-.life-journey[data-instant], .life-journey[data-instant] * { transition: none !important; }
+/* Landing straight in the valley skips the descent, but the search inside keeps its motion. */
+.life-journey[data-instant] :is(.life-sky, .life-haze, .life-sky-scene, .life-painting, .life-search, .life-descend) { transition: none !important; }
 
 .life-descend, .life-ascend { position: absolute; left: 50%; z-index: 3; border: 0; color: #1b3043; background: none; cursor: pointer; opacity: 0; translate: -50% 0; transition: opacity .4s ease; }
 .life-descend svg, .life-ascend svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -406,6 +407,9 @@ body:has(.life-page) { overflow: hidden; }
 .life-ascend svg { width: 26px; height: 16px; }
 .life-journey[data-scene="field"] .life-ascend { opacity: .7; transition: opacity 1s ease 2.2s; }
 .life-journey[data-scene="field"] .life-ascend:is(:hover, :focus-visible) { opacity: 1; transition: opacity .3s ease; }
+/* While there's a search, the way back up steps aside, and returns as the search clears. */
+.life-journey[data-scene="field"] .life-ascend[data-hidden] { opacity: 0; visibility: hidden; transition: opacity .3s ease, visibility 0s linear .3s; }
+.life-journey[data-scene="field"] .life-ascend[data-searched]:not([data-hidden]) { transition: opacity .7s ease .5s; }
 @keyframes life-bob { 50% { transform: translateY(5px); } }
 
 /* The painting starts below the fold and rises into view with the tilt. Its top melts into the
@@ -415,27 +419,39 @@ body:has(.life-page) { overflow: hidden; }
 .life-painting { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; pointer-events: none; user-select: none; --mist: 5%; -webkit-mask-image: linear-gradient(transparent, #000 var(--mist)); mask-image: linear-gradient(transparent, #000 var(--mist)); transform: translate3d(0, 100%, 0); transition: transform var(--tilt), --mist .4s ease; }
 .life-journey[data-scene="field"] .life-painting { --mist: 0%; transform: none; transition: transform var(--tilt), --mist 1.6s ease 2.4s; }
 
-/* Search: results fly in as birds and hover over the valley; a title surfaces over each bird near the pointer. */
-.bird-flock { position: absolute; inset: 0; opacity: 0; transition: opacity .5s ease; }
-.life-journey[data-scene="field"] .bird-flock { opacity: 1; transition: opacity 1s ease 1.6s; }
-.flock-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; filter: blur(.3px); }
-.flock-list { position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; pointer-events: none; }
-.flock-bird { --reveal: 0; position: absolute; top: 0; left: 0; display: block; pointer-events: auto; outline: none; -webkit-tap-highlight-color: transparent; }
-.flock-bird:not([data-placed]) { visibility: hidden; pointer-events: none; }
-a.flock-bird { cursor: pointer; }
-.flock-label { position: absolute; left: var(--body-x, 50%); bottom: calc(100% + 8px); width: max-content; max-width: min(220px, 44vw); padding: .42rem .85rem .46rem; border-radius: 1.1rem; background: rgb(14 14 16 / .6); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: 0 6px 18px rgb(0 0 0 / .16); color: #f7f2e8; font: 400 .82rem/1.3 "Helvetica Neue", Helvetica, Arial, sans-serif; letter-spacing: -.01em; text-align: center; text-wrap: balance; opacity: var(--reveal); translate: -50% calc((1 - var(--reveal)) * 4px); pointer-events: none; }
-.flock-bird:focus-visible .flock-label { box-shadow: 0 0 0 1.5px rgb(247 242 232 / .7), 0 6px 18px rgb(0 0 0 / .16); }
-
-/* The soft black pill. */
-.bird-search { position: absolute; left: 50%; bottom: max(1.5rem, env(safe-area-inset-bottom)); z-index: 3; width: min(440px, calc(100vw - 2.5rem)); translate: -50% 0; opacity: 0; transition: opacity .4s ease; }
-.life-journey[data-scene="field"] .bird-search { opacity: 1; transition: opacity 1s ease 2s; }
-.bird-search input { width: 100%; height: 48px; margin: 0; padding: 0 3.4rem 0 1.4rem; border: 1px solid rgb(255 255 255 / .08); border-radius: 999px; background: rgb(14 14 16 / .56); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgb(0 0 0 / .16); color: #f7f2e8; font: 400 1rem/1 "Helvetica Neue", Helvetica, Arial, sans-serif; letter-spacing: -.01em; outline: none; appearance: none; transition: background .3s ease, border-color .3s ease; }
-.bird-search input::placeholder { color: rgb(247 242 232 / .5); }
-.bird-search input:focus { background: rgb(14 14 16 / .68); border-color: rgb(255 255 255 / .2); }
-.bird-search input::-webkit-search-cancel-button { display: none; }
-.bird-count, .bird-key { position: absolute; top: 50%; right: 1.3rem; translate: 0 -50%; color: rgb(247 242 232 / .6); font: .78rem/1 "Courier New", Courier, monospace; pointer-events: none; }
-.bird-key { padding: .2rem .42rem; border: 1px solid rgb(247 242 232 / .28); border-radius: .35rem; }
-.bird-search:focus-within .bird-key { opacity: 0; }
+/* Search: a glass pill in the middle of the lake. Typing pulls a droplet off it that grows into a
+   glass panel of results, and the pill settles below. */
+.life-search { --pill-drop: 0px; position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; transition: opacity .5s ease; }
+.life-journey[data-scene="field"] .life-search { opacity: 1; transition: opacity 1s ease 2s; }
+.life-glass {
+  background: linear-gradient(rgb(255 255 255 / .1), rgb(255 255 255 / .02) 45%), rgb(16 18 22 / .5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.45);
+  backdrop-filter: blur(20px) saturate(1.45);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .24), inset 0 0 0 1px rgb(255 255 255 / .08), 0 16px 44px rgb(0 0 0 / .2);
+}
+.search-pill { position: absolute; top: 50%; left: 50%; width: min(440px, calc(100vw - 2.5rem)); height: 48px; margin: 0; border-radius: 999px; pointer-events: auto; transform: translate(-50%, -50%); transition: transform .36s cubic-bezier(.4, 0, .2, 1), background-color .3s ease; }
+.life-search[data-open] .search-pill { transform: translate(-50%, calc(-50% + var(--pill-drop))); }
+.search-pill:focus-within { background-color: rgb(16 18 22 / .62); }
+.search-pill input { width: 100%; height: 100%; margin: 0; padding: 0 3.4rem 0 1.4rem; border: 0; border-radius: inherit; background: transparent; color: #f7f2e8; font: 400 1rem/1 "Helvetica Neue", Helvetica, Arial, sans-serif; letter-spacing: -.01em; outline: none; appearance: none; }
+.search-pill input::placeholder { color: rgb(247 242 232 / .5); }
+.search-pill input::-webkit-search-cancel-button { display: none; }
+.search-count, .search-key { position: absolute; top: 50%; right: 1.3rem; translate: 0 -50%; color: rgb(247 242 232 / .6); font: .78rem/1 "Courier New", Courier, monospace; pointer-events: none; }
+.search-key { padding: .2rem .42rem; border: 1px solid rgb(247 242 232 / .28); border-radius: .35rem; }
+.search-pill:focus-within .search-key { opacity: 0; }
+.search-panel { position: absolute; top: 0; left: 0; width: 0; height: 0; overflow: hidden; pointer-events: auto; transform-origin: 50% 100%; }
+/* The panel's glass is a shade darker than the pill's, so its titles read over the brightest paint. */
+.search-panel.life-glass { background: linear-gradient(rgb(255 255 255 / .07), rgb(255 255 255 / .01) 45%), rgb(11 12 15 / .64); }
+.search-panel[data-settled] { transition: left .42s cubic-bezier(.3, .7, .25, 1), top .42s cubic-bezier(.3, .7, .25, 1), width .42s cubic-bezier(.3, .7, .25, 1), height .42s cubic-bezier(.3, .7, .25, 1); }
+.search-scroll { position: absolute; top: 0; left: 0; width: var(--panel-width, 560px); height: var(--panel-height, 100%); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgb(247 242 232 / .25) transparent; opacity: 0; transition: opacity .15s ease; -webkit-mask-image: linear-gradient(transparent, #000 12px, #000 calc(100% - 12px), transparent); mask-image: linear-gradient(transparent, #000 12px, #000 calc(100% - 12px), transparent); }
+.life-search[data-shown] .search-scroll { opacity: 1; transition: opacity .35s ease .05s; }
+.search-results { margin: 0; padding: .4rem; list-style: none; }
+.search-results li + li { border-top: 1px solid rgb(255 255 255 / .06); }
+.search-result { display: block; padding: .6rem .9rem .62rem; border-radius: 12px; color: #f7f2e8; text-decoration: none; }
+a.search-result:is(:hover, :focus-visible) { background: rgb(255 255 255 / .07); outline: none; }
+.result-title { display: block; font: 400 1.02rem/1.3 "Helvetica Neue", Helvetica, Arial, sans-serif; letter-spacing: -.01em; text-wrap: pretty; }
+.result-topic { display: inline-flex; align-items: center; gap: .4rem; margin-top: .3rem; color: var(--topic); font: .76rem/1 "Courier New", Courier, monospace; letter-spacing: .03em; }
+.topic-star { flex: none; width: .82rem; height: .82rem; fill: currentColor; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--topic) 55%, transparent)); }
+.search-empty { padding: 1.3rem 1rem; color: rgb(247 242 232 / .55); font: .82rem/1.4 "Courier New", Courier, monospace; text-align: center; }
 
 /* These matrices come from the same camera as the furniture, not CSS perspective. */
 @media (min-width: 701px) {
