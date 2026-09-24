@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, statSync } from "node:fs";
 import { test } from "node:test";
 import { birdBounds, flockSize, SPECIES, speciesById } from "../lib/life/birds.ts";
-import { footprint, glidePath, layoutFlock, mirror, reveal, skyFor } from "../lib/life/flock.ts";
+import { footprint, glidePath, layoutFlock, mirror, PAINTING, reveal, skyFor } from "../lib/life/flock.ts";
 import { indexWriting, searchWriting, writing } from "../lib/life/writing.ts";
 
 const entries = indexWriting(writing, SPECIES.map((species) => species.id));
@@ -59,7 +59,8 @@ test("the flock hovers inside the open sky, and no bird or title can cover anoth
     const sky = skyFor(width, height);
     const items = itemsFor(searchWriting(entries, "japanese"), width);
     const slots = layoutFlock(items, sky);
-    assert.ok(slots.size >= (width < 700 ? 3 : 6), `${width}×${height} placed ${slots.size}`);
+    // At 4:3 the painting's big tree takes more of the width, so the open air holds one fewer.
+    assert.ok(slots.size >= (width < 700 ? 3 : width < 1200 ? 5 : 6), `${width}×${height} placed ${slots.size}`);
     const boxes = items.filter((item) => slots.has(item.id)).map((item) => footprint(item, slots.get(item.id)));
     for (const box of boxes) assert.ok(box.left >= sky.left && box.right <= sky.right && box.top >= sky.top && box.bottom <= sky.bottom);
     for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) assert.ok(!overlaps(boxes[i], boxes[j]));
@@ -108,16 +109,24 @@ function webpSize(file) {
   return [data.readUInt16LE(26) & 0x3fff, data.readUInt16LE(28) & 0x3fff];
 }
 
-test("the valley's layers share one frame at each size, and ordinary screens load a light set", () => {
-  let full = 0, half = 0;
-  for (const layer of ["sky", "range", "hills", "near"]) {
-    const large = new URL(`../public/life/${layer}.webp`, import.meta.url);
-    const small = new URL(`../public/life/${layer}-1920.webp`, import.meta.url);
-    assert.deepEqual(webpSize(large), [3840, 2160], layer);
-    assert.deepEqual(webpSize(small), [1920, 1080], layer);
-    full += statSync(large).size;
-    half += statSync(small).size;
-  }
-  assert.ok(full < 2600 * 1024, `full size: ${Math.round(full / 1024)} KB`);
-  assert.ok(half < 1000 * 1024, `half size: ${Math.round(half / 1024)} KB`);
+test("the painting and its upscale share one frame, and stay light enough for a backdrop", () => {
+  const native = new URL("../public/life/painting.webp", import.meta.url);
+  const large = new URL("../public/life/painting-2560.webp", import.meta.url);
+  const [w, h] = webpSize(native), [lw, lh] = webpSize(large);
+  assert.deepEqual([w, h], [1672, 941]);
+  assert.equal(lw, 2560);
+  assert.ok(Math.abs(lw / lh - w / h) < 0.002, "same aspect at both sizes");
+  assert.ok(Math.abs(PAINTING.aspect - w / h) < 1e-9, "the flock maps landmarks with the painting's own aspect");
+  assert.ok(statSync(native).size < 400 * 1024 && statSync(large).size < 700 * 1024);
 });
+
+test("the flock stays clear of the big tree on every window shape", () => {
+  for (const [width, height] of [[1440, 900], [1024, 768], [1920, 1080], [2560, 1080], [390, 844]]) {
+    const sky = skyFor(width, height);
+    const painted = Math.max(width, height * PAINTING.aspect);
+    const tree = (PAINTING.treeLine * painted - (painted - width) / 2);
+    assert.ok(sky.right < tree, `${width}×${height}`);
+    assert.ok(sky.left < sky.right && sky.top < sky.bottom);
+  }
+});
+

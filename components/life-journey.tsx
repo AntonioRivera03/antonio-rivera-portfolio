@@ -2,7 +2,7 @@
 
 import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore, type Ref } from "react";
 import { LifeIntro } from "@/components/life-intro";
-import { VALLEY_LAYERS, valleyLayerSet } from "@/components/life-landscape";
+import { PAINTING_SIZES, PAINTING_SRCSET } from "@/components/life-landscape";
 import { LIFE_PATH } from "@/lib/room/life";
 
 const loadField = () => import("@/components/life-field");
@@ -32,11 +32,9 @@ export function LifeJourney({ titleRef }: { titleRef?: Ref<HTMLHeadingElement> }
     // Fetch the painting and the search early; mount them once the view has finished opening.
     const fetch = setTimeout(() => {
       void loadField();
-      for (const layer of VALLEY_LAYERS) {
-        const image = new Image();
-        image.sizes = "100vw";
-        image.srcset = valleyLayerSet(layer);
-      }
+      const image = new Image();
+      image.sizes = PAINTING_SIZES;
+      image.srcset = PAINTING_SRCSET;
     }, 1200);
     const stage = setTimeout(() => setStaged(true), 3800);
     return () => { clearTimeout(fetch); clearTimeout(stage); };

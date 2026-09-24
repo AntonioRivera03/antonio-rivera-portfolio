@@ -20,19 +20,31 @@ export const LABEL_GAP = 8;
 const MARGIN = 6;
 export const DRIFT = { x: 6, y: 5 };
 
+/** Landmarks in the life painting, as fractions of its width and height. */
+export const PAINTING = {
+  aspect: 1672 / 941,
+  /** Where the big tree's canopy begins on the right. */
+  treeLine: 0.63,
+  /** Where the open air over the lake ends, above the lily pads and reeds. */
+  water: 0.7,
+} as const;
+
 /**
- * The open sky the birds hover in: above the hills, clear of the page's controls, and on wide
- * screens clear of the big trees on the right. Narrower screens crop the painting's sides, so
- * the flock takes more of the width there.
+ * The open air the birds hover in: the sky and the far half of the lake, clear of the page's
+ * controls and of the big tree on the right. The painting covers the window, so its landmarks are mapped
+ * through the crop; tall screens crop the sides away and give the flock the full width.
  */
 export function skyFor(width: number, height: number): Rect {
   const narrow = width < 700;
-  const wide = Math.min(1, Math.max(0, (width - 700) / 700));
+  const paintedWidth = Math.max(width, height * PAINTING.aspect);
+  const paintedHeight = Math.max(height, width / PAINTING.aspect);
+  const treeLine = (PAINTING.treeLine * paintedWidth - (paintedWidth - width) / 2) / width;
+  const water = (PAINTING.water * paintedHeight - (paintedHeight - height) / 2) / height;
   return {
-    left: width * (narrow ? 0.04 : 0.06 + 0.04 * wide),
-    right: width * (narrow ? 0.96 : 0.88 - 0.08 * wide),
+    left: width * (narrow ? 0.04 : 0.05),
+    right: width * Math.min(0.96, treeLine - 0.01),
     top: Math.max(70, height * 0.07),
-    bottom: height * (narrow ? 0.7 : 0.58),
+    bottom: height * water,
   };
 }
 

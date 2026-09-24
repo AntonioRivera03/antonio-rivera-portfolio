@@ -4,7 +4,7 @@ import { useEffect, useEffectEvent } from "react";
 import { BirdSearch } from "@/components/bird-search";
 import { LifeLandscape } from "@/components/life-landscape";
 
-/** The valley below the sky: the painting frames the view, and the search's birds hover in its open middle. */
+/** The lake below the sky: the painting frames the view, and the search's birds hover in its open air. */
 export function LifeField({ active, onMount, onAscend }: { active: boolean; onMount: () => void; onAscend: () => void }) {
   const mounted = useEffectEvent(onMount);
   useEffect(() => mounted(), []);

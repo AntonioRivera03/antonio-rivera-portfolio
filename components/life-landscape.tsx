@@ -1,17 +1,14 @@
-/* eslint-disable @next/next/no-img-element -- prerendered painting layers stacked for parallax */
+/* eslint-disable @next/next/no-img-element -- one painted backdrop that rises into view */
 
-/** The autumn valley, painted by assets/painting (`npm run life:valley`), back to front. */
-export const VALLEY_LAYERS = ["sky", "range", "hills", "near"] as const;
-type Layer = (typeof VALLEY_LAYERS)[number];
-/** Each layer at half size (1920 wide) and full (3840); the browser picks for the screen. */
-export const valleyLayerSet = (layer: Layer) => `/life/${layer}-1920.webp 1920w, /life/${layer}.webp 3840w`;
+/** The autumn lake: the native painting, and a finer upscale for large and dense screens. */
+export const PAINTING_SRCSET = "/life/painting.webp 1672w, /life/painting-2560.webp 2560w";
+/** The painting covers the window, so tall windows show it wider than the viewport. */
+export const PAINTING_SIZES = "max(100vw, 177.7vh)";
 
 export function LifeLandscape() {
   return (
     <div className="life-land" aria-hidden="true">
-      {VALLEY_LAYERS.map((layer) => (
-        <img key={layer} className={`land-layer land-${layer}`} src={`/life/${layer}-1920.webp`} srcSet={valleyLayerSet(layer)} sizes="100vw" width="3840" height="2160" alt="" decoding="async" draggable={false} />
-      ))}
+      <img className="life-painting" src="/life/painting.webp" srcSet={PAINTING_SRCSET} sizes={PAINTING_SIZES} width="1672" height="941" alt="" decoding="async" draggable={false} />
     </div>
   );
 }

@@ -387,7 +387,7 @@ body:has(.life-page) { overflow: hidden; }
 .life-journey { position: absolute; inset: 0; overflow: hidden; --tilt: 2.6s cubic-bezier(.64, 0, .2, 1); }
 .life-sky { position: absolute; inset: 0; background: #8cb5d1 url('/about/clouds.png') center / cover; -webkit-mask-image: linear-gradient(#000 84%, transparent); mask-image: linear-gradient(#000 84%, transparent); transition: transform var(--tilt); }
 /* Rides just behind the painted sky: its colors while the painting loads. */
-.life-haze { position: absolute; inset: 0; transform: translate3d(0, 100%, 0); background: linear-gradient(#e6edf2, #a3b1bd 6%, #bec7ce 25%, #b4b8bd 40%, #a88f6f 52%, #93844f 59%, #95979b 70%, #b4bec6 85%, #a0abb7); transition: transform var(--tilt); }
+.life-haze { position: absolute; inset: 0; transform: translate3d(0, 100%, 0); background: linear-gradient(#e6edf2, #8fb3dd 6%, #a9c6e6 24%, #8e93b6 36%, #d0853a 48%, #c99a45 57%, #86a8cf 64%, #6f93c1 85%, #5f85b6); transition: transform var(--tilt); }
 .life-sky-scene { position: absolute; inset: 0; transition: transform var(--tilt), opacity 1s ease 1.2s; }
 .life-field-scene { position: absolute; inset: 0; }
 .life-journey[data-scene="field"] .life-sky, .life-journey[data-scene="field"] .life-sky-scene { transform: translate3d(0, -100%, 0); }
@@ -408,18 +408,12 @@ body:has(.life-page) { overflow: hidden; }
 .life-journey[data-scene="field"] .life-ascend:is(:hover, :focus-visible) { opacity: 1; transition: opacity .3s ease; }
 @keyframes life-bob { 50% { transform: translateY(5px); } }
 
-/* The painting's layers start below the fold and rise at their own rates: the nearer, the faster. */
+/* The painting starts below the fold and rises into view with the tilt. Its top melts into the
+   mist the photograph fades to, so the descent passes through cloud; once settled, the mist clears. */
 .life-land { position: absolute; inset: 0; }
-.land-layer { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; pointer-events: none; user-select: none; transform: translate3d(0, calc(var(--depth) * 100%), 0); transition: transform var(--tilt); }
-.life-journey[data-scene="field"] .land-layer { transform: none; }
-/* The painted sky's top melts into the mist the photograph fades to: the descent passes through cloud,
-   and once the valley has settled the mist clears. */
 @property --mist { syntax: "<percentage>"; inherits: false; initial-value: 5%; }
-.land-sky { --depth: 1; --mist: 5%; -webkit-mask-image: linear-gradient(transparent, #000 var(--mist)); mask-image: linear-gradient(transparent, #000 var(--mist)); transition: transform var(--tilt), --mist .4s ease; }
-.life-journey[data-scene="field"] .land-sky { --mist: 0%; transition: transform var(--tilt), --mist 1.6s ease 2.4s; }
-.land-range { --depth: 1.1; }
-.land-hills { --depth: 1.26; }
-.land-near { --depth: 1.48; }
+.life-painting { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; pointer-events: none; user-select: none; --mist: 5%; -webkit-mask-image: linear-gradient(transparent, #000 var(--mist)); mask-image: linear-gradient(transparent, #000 var(--mist)); transform: translate3d(0, 100%, 0); transition: transform var(--tilt), --mist .4s ease; }
+.life-journey[data-scene="field"] .life-painting { --mist: 0%; transform: none; transition: transform var(--tilt), --mist 1.6s ease 2.4s; }
 
 /* Search: results fly in as birds and hover over the valley; a title surfaces over each bird near the pointer. */
 .bird-flock { position: absolute; inset: 0; opacity: 0; transition: opacity .5s ease; }
